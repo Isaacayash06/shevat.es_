@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta name="robots" content="noindex,nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dónde construimos · Shevat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap">
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<style>
+:root{--brand:#015e70;--ink:#023a45;--deep:#01262e;--sand:#efe9e1;--paper:#f6f3ee;--line:rgba(2,58,69,.14);--ease:cubic-bezier(.22,1,.36,1)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);font-family:"DM Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+#map{position:fixed;inset:0}
+.maplibregl-ctrl-attrib{font-size:10px;background:rgba(246,243,238,.7)!important}
+.maplibregl-ctrl-bottom-right{bottom:72px}
+
+/* barra superior */
+.top{position:fixed;z-index:20;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:22px 32px;pointer-events:none}
+.top>*{pointer-events:auto}
+.wm{font:500 20px/1 "Jost",sans-serif;letter-spacing:.14em;color:var(--brand);text-decoration:none}
+.top .back{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink);text-decoration:none;opacity:.75}
+
+/* entrada: vista aérea en gris, con grano y título grande */
+#map canvas{transition:filter 2.4s var(--ease)}
+body.intro-on #map canvas{filter:grayscale(1) contrast(1.18) brightness(.8)}
+.intro{position:fixed;inset:0;z-index:30;display:grid;place-items:center;text-align:center;pointer-events:none;color:#fff;overflow:hidden;
+  background:radial-gradient(90% 70% at 50% 50%,rgba(70,70,68,.22),rgba(52,52,50,.5));transition:opacity 1.9s var(--ease)}
+.intro::before{content:"";position:absolute;inset:-60px;opacity:.32;mix-blend-mode:overlay;animation:grain 1s steps(5) infinite;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+/* grano: transformaciones con GPU */
+.intro::before{will-change:transform}
+@keyframes grain{20%{transform:translate(-18px,12px)}40%{transform:translate(14px,-20px)}60%{transform:translate(-10px,-8px)}80%{transform:translate(20px,16px)}}
+.intro .in{position:relative;transition:transform 2s var(--ease),opacity 1.3s var(--ease),filter 1.6s var(--ease)}
+.intro .in>*{opacity:0;transform:translateY(24px);animation:rise 1.6s var(--ease) forwards}
+.intro .in>:nth-child(2){animation-delay:.25s}.intro .in>:nth-child(3){animation-delay:.6s}
+@keyframes rise{to{opacity:1;transform:none}}
+.intro p{margin:0 0 30px;font:500 11px/1 "DM Sans",sans-serif;letter-spacing:.44em;text-transform:uppercase}
+.intro h1{margin:0;font:200 clamp(52px,10.5vw,196px)/.86 "Jost",sans-serif;letter-spacing:.07em;text-transform:uppercase;padding-left:.07em;text-shadow:0 2px 40px rgba(0,0,0,.12)}
+.intro .sub{margin-top:34px;font:300 15px/1.5 "Jost",sans-serif;letter-spacing:.12em;opacity:.9}
+.intro .scroll{position:absolute;left:32px;bottom:30px;display:flex;align-items:center;gap:16px;font:500 11px/1 "DM Sans",sans-serif;letter-spacing:.3em;text-transform:uppercase}
+.intro .scroll i{width:42px;height:42px;border:1px solid rgba(255,255,255,.8);border-radius:50%;display:grid;place-items:center}
+.intro .scroll svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:1.3;animation:bob 2.2s ease-in-out infinite}
+.intro .scroll b{font-weight:500;opacity:.55}
+@keyframes bob{50%{transform:translateY(4px)}}
+.intro.gone{opacity:0}
+.intro.gone .in{transform:scale(1.12);filter:blur(10px);opacity:0}
+.nav,.mk,.maplibregl-ctrl-bottom-right,.top .wm,.top .back{transition:opacity .9s var(--ease),color 1.2s}
+body.intro-on .mk,body.intro-on .lm,body.intro-on .zl,body.intro-on .nav,body.intro-on .maplibregl-ctrl-bottom-right{opacity:0!important;pointer-events:none}
+body.intro-on .top .wm,body.intro-on .top .back{color:#fff}
+@media (max-width:720px){.intro .scroll{left:20px;bottom:24px}.intro p{letter-spacing:.3em;font-size:10px}.intro .sub{font-size:13px;max-width:260px;margin-left:auto;margin-right:auto}}
+
+/* marcadores */
+.mk{display:grid;justify-items:center;gap:8px;cursor:pointer}
+.mk .lb{font:500 10.5px/1 "DM Sans",sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--deep);white-space:nowrap;
+  text-shadow:0 0 6px var(--paper),0 0 2px var(--paper);transition:opacity .4s}
+.mk .bub{position:relative;width:34px;height:34px;border-radius:50%;background:#fff;border:1px solid rgba(2,58,69,.25);display:grid;place-items:center;overflow:hidden;
+  box-shadow:0 10px 24px -10px rgba(1,38,46,.55);transition:width .5s var(--ease),height .5s var(--ease),border-color .4s,background .4s}
+.mk .bub img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s}
+.mk .bub::after{content:"";position:absolute;left:50%;top:50%;margin:-5px 0 0 -5px;width:10px;height:10px;border-radius:50%;background:var(--brand);transition:opacity .3s}
+.mk:hover .bub,.mk.on .bub{width:74px;height:74px;border-color:#fff;border-width:3px}
+.mk:hover .bub img,.mk.on .bub img{opacity:1}
+.mk:hover .bub::after,.mk.on .bub::after{opacity:0}
+.mk .stem{width:1px;height:26px;background:linear-gradient(var(--deep),transparent)}
+.mk.done .bub::after{background:#9aa7a9}
+.lm{font:400 10px/1 "DM Sans",sans-serif;letter-spacing:.18em;text-transform:uppercase;color:rgba(2,58,69,.6);white-space:nowrap;display:flex;align-items:center;gap:6px}
+.lm::before{content:"";width:4px;height:4px;border-radius:50%;background:currentColor}
+.zl{font:200 13px/1 "Jost",sans-serif;letter-spacing:.42em;text-transform:uppercase;color:rgba(2,58,69,.55);white-space:nowrap}
+
+/* tarjeta de promoción */
+.card{position:fixed;z-index:25;left:32px;bottom:96px;width:min(380px,calc(100vw - 64px));background:rgba(255,255,255,.97);
+  box-shadow:0 30px 60px -30px rgba(1,38,46,.45);transform:translateY(24px);opacity:0;pointer-events:none;transition:transform .7s var(--ease),opacity .5s}
+.card.on{transform:none;opacity:1;pointer-events:auto}
+.card .ph{position:relative;aspect-ratio:16/10;overflow:hidden;background:var(--sand)}
+.card .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.12);transition:opacity 1.1s var(--ease),transform 6s linear}
+.card .ph img.on{opacity:1;transform:scale(1)}
+.card .dots{position:absolute;left:14px;right:14px;bottom:12px;z-index:2;display:flex;gap:5px}
+.card .dots i{flex:1;height:2px;background:rgba(255,255,255,.4);overflow:hidden;cursor:pointer}
+.card .dots i b{display:block;height:100%;width:0;background:#fff}
+.card .dots i.done b{width:100%}
+.card .dots i.on b{animation:fillbar var(--dur,4s) linear forwards}
+@keyframes fillbar{to{width:100%}}
+.card .ph .nv{position:absolute;top:0;bottom:0;width:38%;z-index:2;cursor:pointer;background:none;border:0}
+.card .ph .nv.l{left:0}.card .ph .nv.r{right:0}
+.card .ph::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(0deg,rgba(1,30,36,.45),transparent);pointer-events:none;z-index:1}
+.card .st,.card .ix{z-index:3}
+.card.on .ph img{transform:none}
+.card .st{position:absolute;left:14px;top:14px;padding:7px 11px;background:#fff;color:var(--brand);font:600 10.5px/1 "DM Sans",sans-serif;letter-spacing:.16em;text-transform:uppercase}
+.card .bd{padding:20px 22px 22px;display:grid;gap:10px}
+.card .zn{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;opacity:.65}
+.card h3{margin:0;font:300 30px/1 "Jost",sans-serif;letter-spacing:-.02em;color:var(--brand)}
+.card .mt{margin:0;font-size:14px;line-height:1.55;opacity:.85}
+.card .nr{display:flex;flex-wrap:wrap;gap:6px 14px;margin:2px 0 4px;padding:12px 0 0;border-top:1px solid var(--line);font-size:12.5px;opacity:.85}
+.card .nr span::before{content:"↳ ";opacity:.5}
+.card .go{display:inline-flex;align-items:center;justify-content:center;gap:10px;margin-top:6px;min-height:46px;background:var(--brand);color:#fff;text-decoration:none;
+  font:500 11px/1 "DM Sans",sans-serif;letter-spacing:.2em;text-transform:uppercase;border-radius:999px}
+.card .go:hover{background:var(--ink)}
+.card .ix{position:absolute;right:14px;top:14px;font:300 13px/1 "Jost",sans-serif;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.4);letter-spacing:.1em}
+
+/* navegación inferior */
+.nav{position:fixed;z-index:26;left:0;right:0;bottom:0;display:flex;align-items:center;gap:18px;padding:16px 32px calc(16px + env(safe-area-inset-bottom));
+  background:linear-gradient(0deg,rgba(246,243,238,.98),rgba(246,243,238,.9));border-top:1px solid var(--line)}
+.zones{display:flex;gap:6px;flex:1;overflow-x:auto;scrollbar-width:none}
+.zones::-webkit-scrollbar{display:none}
+.zones button{flex:none;border:1px solid var(--line);background:transparent;color:var(--ink);padding:10px 16px;border-radius:999px;font:500 11px/1 "DM Sans",sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;transition:background .3s,color .3s}
+.zones button[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}
+.zones button.soon{opacity:.45;cursor:default}
+.prog{font:300 13px/1 "Jost",sans-serif;letter-spacing:.14em;white-space:nowrap;opacity:.75}
+.arw{display:flex;gap:8px}
+.arw button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--brand);cursor:pointer;display:grid;place-items:center}
+.arw button:disabled{opacity:.35;cursor:default}
+.arw svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.4}
+.free{font-size:11px;letter-spacing:.16em;text-transform:uppercase;background:none;border:0;color:var(--ink);opacity:.65;cursor:pointer;white-space:nowrap}
+
+/* modo embebido (portada de la web) */
+body.embed .top,body.embed .nav,body.embed .rail,body.embed .card,body.embed .intro,body.embed .leg,body.embed .clouds{display:none!important}
+body.embed .lm{opacity:0}
+body.embed .mk .bub{width:26px;height:26px}
+/* nubes: paso entre zonas lejanas */
+.clouds{position:fixed;inset:0;z-index:21;pointer-events:none;opacity:0;overflow:hidden;contain:strict;transition:opacity .75s ease-in}
+.clouds::before{content:"";position:absolute;inset:0;z-index:2;background:radial-gradient(70% 60% at 50% 45%,rgba(255,255,255,.94),rgba(240,243,246,.9));opacity:0;transition:opacity .6s ease-in .25s}
+.clouds i{position:absolute;inset:-22%;background-size:cover;transform:scale(1.5) translate3d(0,0,0);transition:transform 2.4s cubic-bezier(.2,.7,.2,1);will-change:transform}
+.clouds i:nth-child(1){z-index:3;opacity:.8;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='c' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.0045' numOctaves='5' seed='3'/><feColorMatrix values='0 0 0 0 .87  0 0 0 0 .9  0 0 0 0 .93  1.9 0 0 0 -.62'/></filter><rect width='100%' height='100%' filter='url(%23c)'/></svg>")}
+.clouds i:nth-child(2){background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='c' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.0045' numOctaves='5' seed='11'/><feColorMatrix values='0 0 0 0 .87  0 0 0 0 .9  0 0 0 0 .93  1.9 0 0 0 -.62'/></filter><rect width='100%' height='100%' filter='url(%23c)'/></svg>");z-index:3;opacity:.9}
+.clouds i:nth-child(3){background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='c' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.0045' numOctaves='5' seed='27'/><feColorMatrix values='0 0 0 0 .87  0 0 0 0 .9  0 0 0 0 .93  1.9 0 0 0 -.62'/></filter><rect width='100%' height='100%' filter='url(%23c)'/></svg>");z-index:3;opacity:.75}
+.clouds.in{opacity:1}.clouds.in::before{opacity:1}
+.clouds.in i:nth-child(1){transform:scale(1) translate3d(-3%,2%,0)}.clouds.in i:nth-child(2){transform:scale(1.1) translate3d(4%,-2%,0)}.clouds.in i:nth-child(3){transform:scale(1.05) translate3d(-2%,-4%,0)}
+.clouds.out{opacity:0;transition:opacity 1.3s ease-out .15s}.clouds.out::before{opacity:0;transition:opacity .7s ease-out}
+.clouds.out i:nth-child(1){transform:scale(1.9) translate3d(-10%,6%,0)}.clouds.out i:nth-child(2){transform:scale(2.2) translate3d(12%,-8%,0)}.clouds.out i:nth-child(3){transform:scale(2) translate3d(-6%,-12%,0)}
+
+/* itinerario: la línea que une las promociones */
+.rail{position:fixed;z-index:24;right:30px;top:50%;transform:translateY(-50%);display:grid;gap:0;font:500 9.5px/1 "DM Sans",sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--ink);transition:opacity .8s}
+.rail .z{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:12px 0 6px;opacity:.55;white-space:nowrap}
+.rail .z:first-child{padding-top:0}
+.rail .s{position:relative;display:flex;justify-content:flex-end;align-items:center;gap:12px;height:22px;cursor:pointer;background:none;border:0;padding:0;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit}
+.rail .s::after{content:"";position:absolute;right:4px;top:-11px;bottom:-11px;width:1px;background:var(--line);z-index:-1}
+.rail .s b{width:9px;height:9px;border-radius:50%;background:var(--paper);border:1px solid rgba(2,58,69,.4);transition:transform .4s var(--ease),background .4s,border-color .4s;flex:none}
+.rail .s span{opacity:0;transform:translateX(6px);transition:opacity .35s,transform .45s var(--ease);white-space:nowrap;text-shadow:0 0 8px var(--paper),0 0 3px var(--paper)}
+.rail .s:hover span{opacity:.75;transform:none}
+.rail .s.seen b{background:rgba(1,94,112,.35);border-color:transparent}
+.rail .s.on b{background:var(--brand);border-color:var(--brand);transform:scale(1.45);box-shadow:0 0 0 4px rgba(1,94,112,.14)}
+.rail .s.on span{opacity:1;transform:none;color:var(--brand);font-weight:600}
+body.intro-on .rail,body.free .rail{opacity:0;pointer-events:none}
+.card .nx{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 0;padding:11px 0 0;border:0;border-top:1px solid var(--line);background:none;color:var(--ink);cursor:pointer;text-align:left;font:400 12.5px/1.3 "DM Sans",sans-serif}
+.card .nx[hidden]{display:none}
+.card .nx small{display:block;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;opacity:.55;margin-bottom:3px}
+.card .nx i{font-style:normal;font-size:16px;color:var(--brand);transition:transform .4s var(--ease)}
+.card .nx:hover i{transform:translateX(4px)}
+@media (max-width:1100px){.rail{display:none}}
+
+/* título de tramo durante el vuelo */
+.leg{position:fixed;z-index:22;left:50%;top:18%;transform:translate(-50%,10px);text-align:center;pointer-events:none;opacity:0;transition:opacity .6s,transform .9s var(--ease)}
+.leg.on{opacity:1;transform:translate(-50%,0)}
+.leg b{display:block;font:200 clamp(40px,6vw,84px)/1 "Jost",sans-serif;letter-spacing:-.02em;color:var(--brand);text-shadow:0 0 30px var(--paper)}
+.leg span{font-size:11px;letter-spacing:.3em;text-transform:uppercase;opacity:.7}
+
+.err{position:fixed;inset:0;z-index:19;display:none;overflow:auto;padding:110px 32px 60px;background:var(--paper)}
+.err.on{display:block}
+.err .eh{max-width:1180px;margin:0 auto 34px;display:grid;gap:12px}
+.err .eh small{font-size:11px;letter-spacing:.3em;text-transform:uppercase;opacity:.6}
+.err .eh h2{margin:0;font:200 clamp(40px,6vw,76px)/1 "Jost",sans-serif;letter-spacing:-.02em;color:var(--brand)}
+.err .eh p{margin:0;max-width:620px;line-height:1.6;opacity:.8}
+.err .zg{max-width:1180px;margin:0 auto 34px}
+.err .zg h3{margin:0 0 14px;font:500 11px/1 "DM Sans",sans-serif;letter-spacing:.26em;text-transform:uppercase;opacity:.65}
+.err .gr{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.err a.pc{display:grid;background:#fff;color:var(--ink);text-decoration:none;box-shadow:0 18px 40px -28px rgba(1,38,46,.5);transition:transform .5s var(--ease)}
+.err a.pc:hover{transform:translateY(-4px)}
+.err a.pc img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block}
+.err a.pc span{padding:14px 16px 16px;display:grid;gap:6px}
+.err a.pc b{font:300 22px/1.1 "Jost",sans-serif;color:var(--brand)}
+.err a.pc em{font-style:normal;font-size:12.5px;opacity:.75}
+body.nomap .nav,body.nomap .rail,body.nomap .intro,body.nomap .card{display:none!important}
+@media (max-width:720px){.err{padding:84px 16px 40px}}
+
+@media (max-width:720px){
+  .top{padding:16px 18px}
+  .top .back{font-size:10px;letter-spacing:.14em}
+  .card{left:10px;right:10px;width:auto;bottom:calc(118px + env(safe-area-inset-bottom));max-height:calc(100dvh - 190px);overflow:auto;border-radius:14px;overscroll-behavior:contain}
+  .card::before{content:"";position:absolute;z-index:5;top:8px;left:50%;width:38px;height:4px;margin-left:-19px;border-radius:2px;background:rgba(255,255,255,.9);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+  .card .ph{aspect-ratio:16/7}
+  .card .bd{padding:14px 16px 16px;gap:7px}
+  .card h3{font-size:24px}
+  .card .zn{font-size:9.5px}
+  .card .mt,.card .nr{display:none}
+  .card.open .mt,.card.open .nr{display:flex}
+  .card.open .mt{display:block}
+  .card.open .ph{aspect-ratio:16/10}
+  .card .go{min-height:42px}
+  .nav{flex-wrap:wrap;gap:10px 12px;padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+  .arw button{width:40px;height:40px}
+  .free{margin-left:auto;font-size:10px;letter-spacing:.12em;padding:8px 0}
+  .zones{order:3;flex-basis:100%}
+  .zones button{padding:9px 13px;font-size:10px}
+  .mk .lb{font-size:9px;letter-spacing:.14em}
+  .mk.on .bub{width:58px;height:58px}
+  .leg{top:14%}
+  body.free .card{bottom:calc(118px + env(safe-area-inset-bottom))}
+}
+
+/* nivel de detalle según zoom */
+body[data-lod="far"] .lm,body[data-lod="far"] .mk .lb{opacity:0}
+body[data-lod="far"] .mk .stem{height:10px}
+body[data-lod="mid"] .lm{opacity:.0}
+body[data-lod="near"] .zl{opacity:0}
+.mk.away{opacity:0!important;pointer-events:none}
+.lm,.zl,.mk .lb{transition:opacity .5s}
+.mk .stem{height:54px}
+.mk.on .lb{color:var(--brand);font-weight:600}
+body.free .mk{cursor:pointer}
+@media (min-width:721px){body.free .card{bottom:96px}}
+</style>
+</head>
+<body class="intro-on">
+<div id="map" aria-label="Mapa de promociones de Shevat"></div>
+
+<header class="top"><a class="wm" href="index.html">SHEVAT</a><a class="back" href="promociones.html">Todas las promociones →</a></header>
+
+<div class="intro" id="intro"><div class="in"><p>Shevat · Dónde construimos</p><h1>Ubicaciones</h1><div class="sub" id="iSub">Barcelona y Sant Cugat</div></div><div class="scroll"><i><svg viewBox="0 0 16 16"><path d="M8 2.5v11M3.8 9.3 8 13.5l4.2-4.2"/></svg></i><span>Haz scroll <b>para empezar</b></span></div></div>
+<div class="clouds" id="clouds"><i></i><i></i></div>
+<aside class="rail" id="rail" aria-label="Itinerario"></aside>
+<div class="leg" id="leg"><span id="legK"></span><b id="legT"></b></div>
+
+<article class="card" id="card" aria-live="polite">
+  <div class="ph" id="cPh"><div id="cImgs"></div><button class="nv l" id="cPrev" aria-label="Foto anterior"></button><button class="nv r" id="cNext" aria-label="Foto siguiente"></button><div class="dots" id="cDots"></div><span class="st" id="cSt" hidden></span><span class="ix" id="cIx"></span></div>
+  <div class="bd"><span class="zn" id="cZn"></span><h3 id="cName"></h3><p class="mt" id="cMeta"></p><div class="nr" id="cNear"></div>
+  <a class="go" id="cGo" href="#">Ver promoción →</a><button class="nx" id="cNx"></button></div>
+</article>
+
+<nav class="nav" aria-label="Recorrido">
+  <div class="arw"><button id="prev" aria-label="Anterior"><svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg></button><button id="next" aria-label="Siguiente"><svg viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg></button></div>
+  <span class="prog" id="prog">00 / 07</span>
+  <div class="zones" id="zones"></div>
+  <button class="free" id="free">Explorar libremente</button>
+</nav>
+<div class="err" id="err"></div>
+
+<script src="vendor/maplibre-gl.js"></script>
+<script src="vendor/polygon-clipping.min.js"></script>
+<script>
+(function(){
+/* =========================================================================
+   Datos. Coordenadas a partir de las direcciones (OSM). fp = huella del edificio:
+   'osm'  → se usa el edificio real del mapa en ese punto
+   {w,d,rot,court} → volumen propio (obra nueva que aún no está en el mapa)
+   ========================================================================= */
+const P=[
+ {id:'mirador',zone:'Barcelona',name:'Mirador del Park Güell',place:'Passeig de Coll, 92 · Vallcarca',ll:[2.148018,41.418302],floors:4,fp:{osm:1,w:34,d:19},img:'mg-piscina',x:{roofPool:1,step:2.5},
+  meta:'16 viviendas · casa, dúplex y pisos de 1 a 3 dormitorios · piscina en la cubierta',near:['Park Güell · 500 m','Metro Vallcarca · 6 min'],cam:{zoom:17.7,bearing:-25,pitch:60}},
+ {id:'universal',zone:'Barcelona',name:'Universal Residences',place:'Passeig Universal, 21-29 · Horta',ll:[2.16212,41.43708],floors:5,fp:{w:30,d:17,rot:-38},img:'un-fachada',x:{pool:1,garden:1,step:2.5},status:'Entregada',
+  meta:'20 viviendas · plantas bajas con jardín y pisos de 2 y 3 dormitorios',near:['Parc del Guinardó · 8 min','Metro Horta · 7 min'],cam:{zoom:17.7,bearing:20,pitch:60}},
+ {id:'varsovia',zone:'Barcelona',name:'Varsovia 137',place:'C/ Varsovia, 137-139 · Guinardó',ll:[2.172448,41.417955],floors:4,fp:{osm:1,w:24,d:15},img:'va-fachada',x:{deck:1},status:'Entregada',
+  meta:'14 viviendas · dúplex en planta baja y pisos de 1 a 3 dormitorios',near:['Hospital de Sant Pau · 8 min','Sagrada Família · 15 min'],cam:{zoom:17.9,bearing:35,pitch:60}},
+ {id:'factory',zone:'Barcelona',name:'La Factory Homes',place:'C/ Gabriel y Galán, 5-11 · El Clot',ll:[2.188807,41.411441],floors:6,fp:{osm:1,w:38,d:20},img:'fh-rooftop',x:{roofPool:1,step:2},
+  meta:'22 viviendas · dúplex y pisos con terraza · piscina en la azotea',near:['Torre Glòries · 600 m','Parc del Clot · 4 min'],cam:{zoom:17.7,bearing:-40,pitch:60}},
+ {id:'monestir',zone:'Sant Cugat',name:'Monestir Homes',place:'C/ Creu, 41 · C/ Montserrat, 31',ll:[2.08780,41.47361],floors:4,fp:{w:24,d:13,rot:-4},img:'mh-fachada',x:{garden:1},
+  meta:'6 viviendas · 2 casas con garaje y 4 pisos con terraza',near:['Monasterio · 1 calle','FGC Sant Cugat · 6 min'],cam:{zoom:18,bearing:15,pitch:60}},
+ {id:'golf-terraces',zone:'Sant Cugat',name:'Golf Terraces',place:'Calle peatonal · Pla de la Pagesa',ll:[2.07385,41.46691],floors:3,fp:{w:28,d:14,rot:-26},img:'gt-fachada',x:{pool:1,garden:1,turret:1},
+  meta:'6 viviendas · 4 dormitorios · jardín, terraza o azotea privada',near:['FGC Sant Cugat · 5 min','Club de Golf · 7 min'],cam:{zoom:17.8,bearing:-10,pitch:62}},
+ {id:'hamilton',zone:'Sant Cugat',name:'Hamilton Gardens',place:'C/ Pere Calders, 33 · Volpelleres',ll:[2.06619,41.48478],floors:5,fp:{w:28,d:31,rot:-26,court:10},img:'hg-fachada',x:{pool:1,garden:1,step:2},
+  meta:'20 viviendas · 3 y 4 dormitorios · jardín, galería o azotea',near:['FGC Volpelleres · 6 min','Parc Central · 4 min'],cam:{zoom:17.6,bearing:25,pitch:60}},
+ {id:'ilana',zone:'Gavà Mar',name:'ILANA',place:'C/ Begur esq. Av. Europa · Gavà Mar',ll:[2.0357,41.2702],floors:4,fp:{w:64,d:22,rot:0},img:'il-pinar',x:{pool:1,garden:1,step:2.5},
+  meta:'34 viviendas · 2, 3 y 4 dormitorios · jardines privados y terrazas junto al pinar',near:['Playa · 100 m','Pinar de Gavà Mar'],cam:{zoom:17.2,bearing:-25,pitch:60}},
+ {id:'park',zone:'Costa Brava',name:'Park Residences III',place:"Av. París, 9 · Platja d'Aro",ll:[3.05867,41.81442],floors:3,fp:{w:52,d:15,rot:90},img:'pr-piscina',x:{pool:1,garden:1},
+  meta:'24 viviendas · 3 y 4 dormitorios · dos bloques de planta baja + 2',near:['Parc dels Estanys · 1 min','Playa · 10 min'],cam:{zoom:17.2,bearing:20,pitch:60}},
+ {id:'park-ii',zone:'Costa Brava',name:'Park Residences II',place:"C/ Roma, 18 · Platja d'Aro",ll:[3.05867,41.81141],floors:3,fp:{w:62,d:56,rot:0,court:30},img:'p2-aerea',x:{pool:1,garden:1},
+  meta:'44 viviendas · 2, 3 y 4 dormitorios · cuatro bloques alrededor del jardín',near:['Parc dels Estanys · 3 min','Playa · 8 min'],cam:{zoom:17,bearing:-20,pitch:60}},
+ {id:'arturo',zone:'Madrid',name:'Arturo Soria Hills',place:'C/ Luis Carlos Vázquez, 8 · Ciudad Lineal',ll:[-3.65465,40.45554],floors:4,fp:{osm:1,w:16,d:13},img:'as-piscina',x:{deck:1},
+  meta:'7 viviendas de 2 dormitorios · piscina comunitaria',near:['Ciudad Lineal','Junto a la calle Arturo Soria'],cam:{zoom:17.9,bearing:-30,pitch:60}},
+ {id:'abel',zone:'Madrid',name:'Las Terrazas de Abel',place:'C/ Abel, 12 · Bellas Vistas, Tetuán',ll:[-3.70809,40.45033],floors:5,fp:{osm:1,w:14,d:14},img:'ab-fachada',status:'Entregada',x:{step:2},
+  meta:'11 viviendas de 1 y 2 dormitorios · tres áticos con terraza',near:['Bellas Vistas · Tetuán','Cerca de Bravo Murillo'],cam:{zoom:18,bearing:25,pitch:60}},
+];
+const LM=[['Park Güell',[2.1527,41.4145]],['Sagrada Família',[2.1744,41.4036]],['Torre Glòries',[2.1894,41.4034]],['Hospital de Sant Pau',[2.1745,41.4114]],
+ ['Parc del Guinardó',[2.1680,41.4185]],['Tibidabo',[2.1189,41.4220]],['Monasterio de Sant Cugat',[2.0853,41.4743]],['Club de Golf Sant Cugat',[2.0770,41.4629]],['Parc Central',[2.0721,41.4750]],['Búnquers del Carmel',[2.1617,41.4189]],['Parc del Clot',[2.1876,41.4096]],['Playa de Gavà',[2.0372,41.2672]],['Parc dels Estanys',[3.0556,41.8124]],['Platja Gran',[3.0688,41.8140]],['Estadio Bernabéu',[-3.6883,40.4531]],['Cuatro Torres',[-3.6890,40.4770]],['FGC Volpelleres',[2.0644,41.4867]]];
+const ZL=[['Barcelona',[2.170,41.392]],['Sant Cugat del Vallès',[2.078,41.468]],['Collserola',[2.105,41.440]],['Gavà Mar',[2.028,41.276]],["Platja d'Aro",[3.064,41.820]],['Madrid',[-3.692,40.440]]];
+const ZONES=[['Barcelona',0],['Sant Cugat',4],['Gavà Mar',7],['Costa Brava',8],['Madrid',10]];
+/* regiones: la exploración libre no sale de la región en la que estás */
+const REG={cat:{b:[[1.95,41.22],[2.28,41.53]],z:10.4},cb:{b:[[2.97,41.77],[3.14,41.86]],z:12.6},mad:{b:[[-3.80,40.38],[-3.58,40.51]],z:11.4}};
+const regOf=z=>z==='Costa Brava'?'cb':z==='Madrid'?'mad':'cat';
+const MOB=matchMedia('(max-width:720px)').matches;
+/* ?embed=1: vista viva para la portada de la web (sin interfaz ni interacción) */
+const EMBED=/[?&]embed=1/.test(location.search); if(EMBED) document.body.classList.add('embed');
+const PRETTY=!/\.html$/.test(location.pathname)&&location.protocol!=='file:';
+const promoURL=id=>PRETTY?'/promociones/'+id:'promocion.html#'+id;
+const $=id=>document.getElementById(id), pad=n=>String(n).padStart(2,'0');
+
+/* =========================================================================
+   Estilo "maqueta": suelo arena, relieve real, árboles en parques, calles finas
+   ========================================================================= */
+const C={land:'#efe9e1',water:'#bcd3d4',park:'#e2e5d2',wood:'#d9dfc8',road:'#ffffff',road2:'#f8f4ee',casing:'#ddd3c6',bldg:'#f8f5ef',brand:'#015e70',glass:'#7fb3bc',roof:'#e8f0f1'};
+const style={version:8,glyphs:'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+ sources:{
+  omt:{type:'vector',url:'https://tiles.openfreemap.org/planet'},
+  /* edificios: VersaTiles (OSM completo, con alturas y partes de edificio) */
+  vt:{type:'vector',tiles:['https://tiles.versatiles.org/tiles/osm/{z}/{x}/{y}'],minzoom:13,maxzoom:14,attribution:'Edificios: <a href="https://versatiles.org">VersaTiles</a>'},
+  dem:{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],encoding:'terrarium',tileSize:256,maxzoom:14,attribution:'Relieve: Mapzen/AWS Terrain Tiles'}},
+ sky:{'sky-color':'#e9eef0','horizon-color':'#f6f3ee','fog-color':'#f3efe8','sky-horizon-blend':.7,'horizon-fog-blend':.6,'fog-ground-blend':.35,'atmosphere-blend':.4},
+ light:{anchor:'map',position:[1.3,200,40],color:'#fff',intensity:.38},
+ layers:[
+  {id:'bg',type:'background',paint:{'background-color':C.land}},
+  {id:'hill',type:'hillshade',source:'dem',paint:{'hillshade-shadow-color':'#cfc3b2','hillshade-highlight-color':'#fbf8f3','hillshade-accent-color':'#d8cdbd','hillshade-exaggeration':.5}},
+  {id:'landuse',type:'fill',source:'omt','source-layer':'landuse',filter:['in',['get','class'],['literal',['residential','commercial','retail']]],paint:{'fill-color':'#ece5da','fill-opacity':.6}},
+  {id:'wood',type:'fill',source:'omt','source-layer':'landcover',filter:['in',['get','class'],['literal',['wood','grass','scrub']]],paint:{'fill-color':C.wood,'fill-opacity':.75}},
+  {id:'park',type:'fill',source:'omt','source-layer':'park',paint:{'fill-color':C.park}},
+  {id:'golf',type:'fill',source:'omt','source-layer':'landcover',filter:['==',['get','subclass'],'golf_course'],paint:{'fill-color':'#d3e0b6','fill-opacity':.95}},
+  {id:'trees',type:'fill',source:'omt','source-layer':'landcover',minzoom:13,filter:['in',['get','class'],['literal',['wood','scrub']]],paint:{'fill-pattern':'tree','fill-opacity':['interpolate',['linear'],['zoom'],13,0,14.5,.9]}},
+  {id:'park-trees',type:'fill',source:'omt','source-layer':'park',minzoom:14,paint:{'fill-pattern':'tree','fill-opacity':['interpolate',['linear'],['zoom'],14,0,15.5,.8]}},
+  {id:'water',type:'fill',source:'omt','source-layer':'water',paint:{'fill-color':['interpolate',['linear'],['zoom'],14,C.water,17,'#a9d4dc']}},
+  {id:'rail',type:'line',source:'omt','source-layer':'transportation',filter:['==',['get','class'],'rail'],paint:{'line-color':'#d4c9bb','line-width':1,'line-dasharray':[3,3]}},
+  {id:'road-case',type:'line',source:'omt','source-layer':'transportation',filter:['in',['get','class'],['literal',['motorway','trunk','primary','secondary']]],layout:{'line-cap':'round','line-join':'round'},
+    paint:{'line-color':C.casing,'line-width':['interpolate',['exponential',1.6],['zoom'],8,.5,13,3,18,30]}},
+  {id:'road-minor-case',type:'line',source:'omt','source-layer':'transportation',minzoom:15,filter:['in',['get','class'],['literal',['tertiary','minor','service']]],layout:{'line-cap':'round','line-join':'round'},
+    paint:{'line-color':'#e2d8ca','line-width':['interpolate',['exponential',1.6],['zoom'],15,4,18,19]}},
+  {id:'road-minor',type:'line',source:'omt','source-layer':'transportation',filter:['in',['get','class'],['literal',['tertiary','minor','service','path']]],layout:{'line-cap':'round','line-join':'round'},
+    paint:{'line-color':C.road2,'line-width':['interpolate',['exponential',1.6],['zoom'],12,.3,15,2.5,18,14]}},
+  {id:'road-major',type:'line',source:'omt','source-layer':'transportation',filter:['in',['get','class'],['literal',['motorway','trunk','primary','secondary']]],layout:{'line-cap':'round','line-join':'round'},
+    paint:{'line-color':C.road,'line-width':['interpolate',['exponential',1.6],['zoom'],8,.3,13,2,18,24]}},
+  {id:'bldg-shadow',type:'fill',source:'vt','source-layer':'buildings',minzoom:14,paint:{'fill-color':'#4a4234','fill-opacity':['interpolate',['linear'],['zoom'],14,0,15.5,['case',['boolean',['feature-state','hide'],false],0,.14]],
+    'fill-translate':['interpolate',['exponential',2],['zoom'],14,['literal',[1,-2]],18,['literal',[14,-22]],20,['literal',[56,-88]]],'fill-translate-anchor':'map'}},
+  {id:'bldg',type:'fill-extrusion',source:'vt','source-layer':'buildings',minzoom:13.5,
+    paint:{'fill-extrusion-color':['match',['%',['to-number',['id'],0],7],0,'#f3eee6',1,'#efe7db',2,'#f6f2eb',3,'#ebe2d4',4,'#f1ebe1',5,'#e9e3da','#f7f3ec'],
+      'fill-extrusion-height':['interpolate',['linear'],['zoom'],13.5,0,15,['case',['boolean',['feature-state','hide'],false],0,['max',['coalesce',['get','height'],9],3]]],
+      'fill-extrusion-base':['case',['boolean',['feature-state','hide'],false],0,['coalesce',['get','min_height'],0]],'fill-extrusion-opacity':.95,'fill-extrusion-vertical-gradient':true}},
+  {id:'stn',type:'circle',source:'omt','source-layer':'poi',minzoom:13.5,filter:['all',['==',['get','class'],'railway'],['in',['get','subclass'],['literal',['station','subway','halt']]]],
+    paint:{'circle-radius':['interpolate',['linear'],['zoom'],13.5,2.5,17,5],'circle-color':'#fff','circle-stroke-color':C.brand,'circle-stroke-width':1.6,'circle-pitch-alignment':'map'}},
+  {id:'stn-name',type:'symbol',source:'omt','source-layer':'poi',minzoom:14.5,filter:['all',['==',['get','class'],'railway'],['in',['get','subclass'],['literal',['station','subway','halt']]]],
+    layout:{'text-field':['get','name'],'text-font':['Noto Sans Regular'],'text-size':10,'text-offset':[0,1.2],'text-anchor':'top','text-optional':true},
+    paint:{'text-color':'rgba(1,94,112,.75)','text-halo-color':'#fff','text-halo-width':1.3}},
+  {id:'park-name',type:'symbol',source:'omt','source-layer':'park',minzoom:14.5,filter:['has','name'],
+    layout:{'text-field':['get','name'],'text-font':['Noto Sans Regular'],'text-size':10,'text-max-width':8},
+    paint:{'text-color':'#7c8c62','text-halo-color':'rgba(255,255,255,.85)','text-halo-width':1.2}},
+  {id:'hood',type:'symbol',source:'omt','source-layer':'place',minzoom:12.8,maxzoom:16.6,filter:['in',['get','class'],['literal',['suburb','quarter','neighbourhood']]],
+    layout:{'text-field':['upcase',['get','name']],'text-font':['Noto Sans Regular'],'text-size':10.5,'text-letter-spacing':.3,'text-max-width':9},
+    paint:{'text-color':'rgba(2,58,69,.36)','text-halo-color':'rgba(255,255,255,.8)','text-halo-width':1.2}},
+  {id:'street-names',type:'symbol',source:'omt','source-layer':'transportation_name',minzoom:15.5,filter:['in',['get','class'],['literal',['primary','secondary','tertiary','minor']]],
+    layout:{'text-field':['upcase',['get','name']],'text-font':['Noto Sans Regular'],'text-size':9.5,'text-letter-spacing':.18,'symbol-placement':'line','text-max-angle':30},
+    paint:{'text-color':'rgba(2,58,69,.45)','text-halo-color':'#fff','text-halo-width':1.2}},
+ ]};
+
+/* árboles: patrón dibujado a mano para las zonas verdes */
+function treeImg(){ const s=48, c=document.createElement('canvas'); c.width=c.height=s; const x=c.getContext('2d');
+  [[10,12,5.5],[30,8,4.5],[38,30,6],[18,34,5],[6,40,3.5],[28,22,3.8]].forEach(([a,b,r])=>{ x.fillStyle='rgba(120,138,104,.28)'; x.beginPath(); x.arc(a+1.5,b+2,r,0,7); x.fill();
+    x.fillStyle='#c5cfae'; x.beginPath(); x.arc(a,b,r,0,7); x.fill(); x.fillStyle='rgba(255,255,255,.35)'; x.beginPath(); x.arc(a-r*.3,b-r*.3,r*.45,0,7); x.fill(); });
+  return x.getImageData(0,0,s,s); }
+
+function noMap(){ if(document.body.classList.contains('nomap')) return; document.body.classList.add('nomap'); document.body.classList.remove('intro-on');
+  const Z=[...new Set(P.map(p=>p.zone))]; const url=id=>(!/\.html$/.test(location.pathname)&&location.protocol!=='file:')?'/promociones/'+id:'promocion.html#'+id;
+  $('err').innerHTML=`<div class="eh"><small>Shevat · Dónde construimos</small><h2>Ubicaciones</h2><p>${P.length} promociones en ${Z.slice(0,-1).join(', ')} y ${Z[Z.length-1]}. El mapa 3D no se ha podido cargar en este navegador; aquí tienes todas las ubicaciones.</p></div>`+
+    Z.map(z=>`<section class="zg"><h3>${z}</h3><div class="gr">${P.filter(p=>p.zone===z).map(p=>`<a class="pc" href="${url(p.id)}"><img src="img/m/${p.img}.jpg" alt="" loading="lazy"><span><b>${p.name}</b><em>${p.place}</em></span></a>`).join('')}</div></section>`).join('');
+  $('err').classList.add('on'); }
+let map;
+try{ map=new maplibregl.Map({container:'map',style,interactive:!EMBED,pixelRatio:Math.min(devicePixelRatio||1,EMBED?1.5:MOB?2:3),center:[2.125,41.43],zoom:MOB?10.1:11.35,pitch:0,bearing:0,attributionControl:{compact:true},maxPitch:80,fadeDuration:0,canvasContextAttributes:{antialias:!MOB}}); }
+catch(e){ noMap(); return; }
+window.__map=map;
+map.on('styleimagemissing',e=>{ if(e.id==='tree'&&!map.hasImage('tree')) map.addImage('tree',treeImg(),{pixelRatio:2}); });
+map.scrollZoom.disable(); map.touchZoomRotate.disableRotation();
+let errs=0; map.on('error',()=>{ if(++errs>25&&!map.loaded()) noMap(); });
+/* si el navegador no deja cargar el mapa (p. ej. en una vista previa), las ubicaciones se muestran como lista */
+setTimeout(()=>{ if(!map.loaded()&&errs>0) noMap(); },6000);
+
+/* =========================================================================
+   Edificio de la promoción: plantas apiladas (forjado + franja de vidrio),
+   cubierta clara y crecimiento planta a planta
+   ========================================================================= */
+const FH=3.2, toR=Math.PI/180;
+function rect(ll,w,d,rot,ox=0,oy=0){ const k=Math.cos(ll[1]*toR), r=rot*toR, pts=[[ox-w/2,oy-d/2],[ox+w/2,oy-d/2],[ox+w/2,oy+d/2],[ox-w/2,oy+d/2]].map(([x,y])=>{ const X=x*Math.cos(r)-y*Math.sin(r), Y=x*Math.sin(r)+y*Math.cos(r); return [ll[0]+X/(111320*k), ll[1]+Y/110540]; }); pts.push(pts[0]); return pts; }
+function shrink(ring,d){ const c0=ring.slice(0,-1).reduce((s,q,_,a)=>[s[0]+q[0]/a.length,s[1]+q[1]/a.length],[0,0]), k=Math.cos(c0[1]*toR);
+  const o=ring.map(([x,y])=>{ const dx=(x-c0[0])*111320*k, dy=(y-c0[1])*110540, L=Math.hypot(dx,dy)||1, f=Math.max(.35,1-d*1.15/L); return [c0[0]+(x-c0[0])*f,c0[1]+(y-c0[1])*f]; }); return o; }
+/* contorno de la planta: el real del edificio (si existe en el mapa) o un rectángulo */
+function outer(q,ins){ const f=q.fp; return q.ring?shrink(q.ring,ins):rect(q.ll,f.w-ins*2,f.d-ins*2,f.rot); }
+function synthRings(p,ins=0){ if(p.ring) return [shrink(p.ring,ins)]; const f=p.fp, out=[rect(p.ll,f.w-ins*2,f.d-ins*2,f.rot)]; if(f.court) out.push(rect(p.ll,f.court+ins*2,f.court+2+ins*2,f.rot).reverse()); return out; }
+const FOOT=new Array(P.length).fill(null), FOOTI=new Array(P.length).fill(null), RES=new Array(P.length).fill(null), HIDE=new Set();
+function pip(pt,ring){ let c=false; for(let a=0,b=ring.length-1;a<ring.length;b=a++){ const [xi,yi]=ring[a],[xj,yj]=ring[b]; if(((yi>pt[1])!==(yj>pt[1]))&&(pt[0]<(xj-xi)*(pt[1]-yi)/(yj-yi)+xi)) c=!c; } return c; }
+function dist(a,b){ const k=Math.cos(a[1]*toR); return Math.hypot((a[0]-b[0])*111320*k,(a[1]-b[1])*110540); }
+function osmAnchor(i){ const p=P[i];
+  const fs=map.queryRenderedFeatures({layers:['bldg']}); let best=null, bd=1e9;
+  for(const f of fs){ const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates;
+    for(const rings of polys){ const r=rings[0]; const c=r.reduce((s,q)=>[s[0]+q[0]/r.length,s[1]+q[1]/r.length],[0,0]);
+      const d=pip(p.ll,r)?0:dist(c,p.ll); if(d<bd&&d<35){ bd=d; best={c,r}; } } }
+  if(!best) return null;
+  // orientación: arista más larga del edificio real
+  let L=0, rot=0; for(let k=0;k<best.r.length-1;k++){ const a=best.r[k], b=best.r[k+1], k2=Math.cos(a[1]*toR), dx=(b[0]-a[0])*111320*k2, dy=(b[1]-a[1])*110540, l=Math.hypot(dx,dy); if(l>L){ L=l; rot=Math.atan2(dy,dx)/toR; } }
+  return {c:best.c,rot,r:best.r}; }
+function area(r){ const k=Math.cos(r[0][1]*toR); let a=0; for(let j=0;j<r.length-1;j++){ a+=(r[j][0]*r[j+1][1]-r[j+1][0]*r[j][1]); } return Math.abs(a/2)*111320*k*110540; }
+/* edificios del mapa que tocan la promoción: los pequeños se sustituyen; las manzanas grandes
+   se recortan para dejar libre la parcela (así la promoción no queda hundida dentro de la manzana) */
+const cut={type:'FeatureCollection',features:[]};
+function hideUnder(rings,plot){ const PC=window.polygonClipping, fs=map.queryRenderedFeatures({layers:['bldg']}), A=area(rings[0]);
+  for(const f of fs){ if(f.id==null||HIDE.has(f.id)) continue; const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates;
+    let hit=false, big=false;
+    for(const rr of polys){ const r=rr[0], c=r.reduce((s,q)=>[s[0]+q[0]/r.length,s[1]+q[1]/r.length],[0,0]);
+      let inter=pip(c,rings[0])||r.some(q=>pip(q,rings[0]))||rings[0].some(q=>pip(q,r));
+      if(!inter&&PC){ try{ inter=PC.intersection([rr],[plot]).length>0; }catch(e){} }
+      if(inter){ hit=true; if(area(r)>=2.2*A) big=true; } }
+    if(!hit) continue; HIDE.add(f.id);
+    if(big&&PC){ try{ const d=PC.difference(polys,[plot]); d.forEach(pg=>cut.features.push({type:'Feature',properties:Object.assign({},f.properties,{cid:f.id}),geometry:{type:'Polygon',coordinates:pg}})); }catch(e){} } }
+  const s=map.getSource('cut'); if(s) s.setData(cut); }
+function footprint(i){ if(FOOT[i]) return FOOT[i]; const p=P[i], f=p.fp;
+  let q=Object.assign({},p);
+  if(f.osm){ const a=osmAnchor(i); q.ll=a?a.c:p.ll; q.fp={w:f.w,d:f.d,rot:a?a.rot:0};
+    if(a){ // planta real: medidas y centro según su orientación
+      const k=Math.cos(a.c[1]*toR), t=a.rot*toR, U=a.r.map(([x,y])=>{ const X=(x-a.c[0])*111320*k, Y=(y-a.c[1])*110540; return [X*Math.cos(t)+Y*Math.sin(t),-X*Math.sin(t)+Y*Math.cos(t)]; });
+      const u0=Math.min(...U.map(v=>v[0])), u1=Math.max(...U.map(v=>v[0])), v0=Math.min(...U.map(v=>v[1])), v1=Math.max(...U.map(v=>v[1])), mu=(u0+u1)/2, mv=(v0+v1)/2;
+      q.ring=a.r; q.fp={w:u1-u0,d:v1-v0,rot:a.rot}; q.ll=[a.c[0]+(mu*Math.cos(t)-mv*Math.sin(t))/(111320*k), a.c[1]+(mu*Math.sin(t)+mv*Math.cos(t))/110540]; } }
+  RES[i]=q; FOOT[i]=synthRings(q); FOOTI[i]=synthRings(q,.7);
+  const pf=q.fp, plot=q.ring?shrink(q.ring,-1):(p.x&&p.x.garden&&!f.osm)?rect(q.ll,pf.w+12,pf.d+16,pf.rot):rect(q.ll,pf.w+2,pf.d+2,pf.rot); hideUnder(FOOT[i],[plot]); grounds(i);
+  HIDE.forEach(id=>{ try{ map.setFeatureState({source:'vt',sourceLayer:'buildings',id},{hide:true}); }catch(e){} }); // sin setFilter: no se vuelven a procesar las teselas
+  return FOOT[i]; }
+const vol={type:'FeatureCollection',features:[]};
+const shown=new Map(); // i -> pisos visibles
+function rebuild(){ vol.features=[]; const F=(b,h,c,co)=>vol.features.push({type:'Feature',properties:{b,h,c},geometry:{type:'Polygon',coordinates:co}});
+  shown.forEach((n,i)=>{ const q=RES[i]; if(!q) return; const x=P[i].x||{}, N=P[i].floors, f=q.fp, ll=q.ll;
+    for(let k=0;k<n;k++){ const b=k*FH, top=k===N-1&&x.step;
+      F(b,b+.7,'slab',FOOT[i]);
+      F(b+.7,b+FH,'glass',top?synthRings(q,x.step+.7):FOOTI[i]);
+      if(top){ F(b+.7,b+1.75,'rail',[outer(q,0),outer(q,.18).reverse()]); F(b+FH,b+FH+.6,'roof',synthRings(q,x.step)); }
+      else if(k>0&&!f.court){ const bo=q.ring?shrink(q.ring,-1.2):rect(ll,f.w*.86,f.d+2.6,f.rot), bi=q.ring?shrink(q.ring,-.95):rect(ll,f.w*.86-.3,f.d+2.3,f.rot); F(b+.7,b+1.65,'rail',[bo,bi.reverse()]); F(b,b+.35,'bal',[bo]); } }
+    if(n===N){ const r=N*FH;
+      if(!x.step) F(r,r+.6,'roof',FOOT[i]);
+      F(r+.6,r+1.6,'rail',[outer(q,x.step||0),outer(q,(x.step||0)+.16).reverse()]);
+      const iw=f.w-2*(x.step||0), id=f.d-2*(x.step||0);
+      if(x.roofPool){ F(r+.6,r+.72,'deck',[rect(ll,iw*.72,id*.66,f.rot)]); F(r+.72,r+.8,'water',[rect(ll,iw*.42,id*.34,f.rot,-iw*.08,0)]); }
+      if(x.deck) F(r+.6,r+.72,'deck',[rect(ll,iw*.7,id*.6,f.rot)]);
+      if(x.turret) F(r+.6,r+3.2,'slab',[rect(ll,3.2,3.2,f.rot,f.w/2-2.4,f.d/2-2.4)]);
+    } });
+  const s=map.getSource('vol'); if(s) s.setData(vol); }
+/* árboles 3D en las aceras y los parques que rodean la promoción */
+const trees={type:'FeatureCollection',features:[]};
+let plantJob=0;
+const idle=window.requestIdleCallback?f=>requestIdleCallback(f,{timeout:120}):f=>setTimeout(()=>f({timeRemaining:()=>8}),16);
+function plant(i){ const job=++plantJob, c=RES[i]?RES[i].ll:P[i].ll, k=Math.cos(c[1]*toR), RAD=MOB?260:360, CAP=MOB?420:950, CELL=24;
+  const toM=q=>[(q[0]-c[0])*111320*k,(q[1]-c[1])*110540], toLL=(x,y)=>[c[0]+x/(111320*k),c[1]+y/110540];
+  const grid=new Map(), cand=[], seen=new Set(), out=[];
+  const plot=RES[i]?Math.hypot(RES[i].fp.w,RES[i].fp.d)/2+9:20;
+  const W={primary:11,secondary:10,tertiary:8,minor:6.5};
+  // trabajo por fases, cada una en huecos libres del navegador
+  const steps=[
+    function*(){ let F=[]; try{ F=map.querySourceFeatures('vt',{sourceLayer:'buildings'}); }catch(e){} yield;
+      let n=0; for(const f of F){ if(++n%250===0) yield; const g=f.geometry, polys=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];
+        for(const pg of polys){ const r=pg[0].map(toM); let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; for(const [x,y] of r){ if(x<x0)x0=x; if(y<y0)y0=y; if(x>x1)x1=x; if(y>y1)y1=y; }
+          if(x1<-RAD||x0>RAD||y1<-RAD||y0>RAD) continue; const B={r,x0,y0,x1,y1};
+          for(let gx=Math.floor(x0/CELL);gx<=Math.floor(x1/CELL);gx++) for(let gy=Math.floor(y0/CELL);gy<=Math.floor(y1/CELL);gy++){ const key=gx+','+gy; let L=grid.get(key); if(!L){ L=[]; grid.set(key,L); } L.push(B); } } } },
+    function*(){ let F=[]; try{ F=map.querySourceFeatures('omt',{sourceLayer:'transportation'}); }catch(e){} yield;
+      let n=0; for(const f of F){ if(++n%250===0) yield; const w=W[f.properties.class]; if(!w) continue; const g=f.geometry, lines=g.type==='LineString'?[g.coordinates]:g.type==='MultiLineString'?g.coordinates:[];
+        for(const L of lines){ const m=L.map(toM); for(let j=0;j<m.length-1;j++){ const [ax,ay]=m[j],[bx,by]=m[j+1], len=Math.hypot(bx-ax,by-ay); if(len<1) continue;
+          const ux=(bx-ax)/len, uy=(by-ay)/len; for(let t=4;t<len-3;t+=9){ const x=ax+ux*t, y=ay+uy*t; if(x*x+y*y>(RAD+20)*(RAD+20)) continue; cand.push([x-uy*w,y+ux*w,0],[x+uy*w,y-ux*w,0]); } } } } },
+    function*(){ for(const sl of ['park','landcover']){ let F=[]; try{ F=map.querySourceFeatures('omt',{sourceLayer:sl}); }catch(e){} yield;
+      for(let fi=0;fi<F.length;fi++){ const f=F[fi]; if(fi%40===39) yield; (()=>{ if(sl==='landcover'&&!['wood','grass','scrub'].includes(f.properties.class)) return; const g=f.geometry, polys=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];
+        polys.forEach((pg,pi)=>{ const r=pg[0].map(toM); let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; for(const [x,y] of r){ if(x<x0)x0=x; if(y<y0)y0=y; if(x>x1)x1=x; if(y>y1)y1=y; }
+          x0=Math.max(x0,-RAD);y0=Math.max(y0,-RAD);x1=Math.min(x1,RAD);y1=Math.min(y1,RAD); if(x1<=x0||y1<=y0) return;
+          const n=Math.min(200,Math.round((x1-x0)*(y1-y0)/130)); for(let q=0;q<n;q++){ const x=x0+rnd(q*7.1+fi+pi*3.3+x0)*(x1-x0), y=y0+rnd(q*3.7+fi*1.7+y0)*(y1-y0); if(pip([x,y],r)) cand.push([x,y,1]); } }); })(); } } },
+  ].map(g=>g());
+  // los más cercanos primero: si se llega al tope, se pierden los lejanos
+  let ci=0; const free=(x,y)=>{ const d=Math.hypot(x,y); if(d>RAD||d<plot) return false; const L=grid.get(Math.floor(x/CELL)+','+Math.floor(y/CELL)); if(L) for(const b of L){ if(x>b.x0-1.5&&x<b.x1+1.5&&y>b.y0-1.5&&y<b.y1+1.5&&pip([x,y],b.r)) return false; } return true; };
+  const tick=dl=>{ if(job!==plantJob) return;
+    while(steps.length&&dl.timeRemaining()>3){ if(steps[0].next().done) steps.shift(); }
+    if(steps.length) return idle(tick);
+    if(ci===0) cand.sort((p,q)=>(p[0]*p[0]+p[1]*p[1])-(q[0]*q[0]+q[1]*q[1]));
+    while(ci<cand.length&&out.length<CAP&&dl.timeRemaining()>2){ const [x,y,big]=cand[ci++]; const key=Math.round(x/5)+','+Math.round(y/5); if(seen.has(key)) continue; seen.add(key); if(free(x,y)) out.push([x,y,big]); }
+    if(ci<cand.length&&out.length<CAP) return idle(tick);
+    const G=['#9db48a','#8fa87c','#a7bb92','#94ad85','#b1c29c'], feats=[];
+    out.forEach(([x,y,big],j)=>{ const r=(big?2.6:2.0)+rnd(j+x)*1.3, top=(big?8:6.5)+rnd(j*1.3+y)*3, base=top*.32, oct=[], cap=[];
+      for(let a=0;a<8;a++){ const t=a/8*Math.PI*2+.39; oct.push(toLL(x+Math.cos(t)*r,y+Math.sin(t)*r)); cap.push(toLL(x+Math.cos(t-.39)*r*.62,y+Math.sin(t-.39)*r*.62)); } oct.push(oct[0]); cap.push(cap[0]);
+      feats.push({type:'Feature',properties:{b:base,h:top-1.1,c:G[j%G.length]},geometry:{type:'Polygon',coordinates:[oct]}});
+      feats.push({type:'Feature',properties:{b:top-1.2,h:top+.3,c:G[(j+2)%G.length]},geometry:{type:'Polygon',coordinates:[cap]}});
+      feats.push({type:'Feature',properties:{b:0,h:base+.4,c:'#8b7a63'},geometry:{type:'Polygon',coordinates:[[toLL(x-.22,y-.22),toLL(x+.22,y-.22),toLL(x+.22,y+.22),toLL(x-.22,y+.22),toLL(x-.22,y-.22)]]}}); });
+    trees.features=feats; const s=map.getSource('trees3d'); if(s) s.setData(trees);
+    // aparecen creciendo
+    if(map.getLayer('trees3d')){ map.setPaintProperty('trees3d','fill-extrusion-opacity',0); let t0=performance.now(); (function f(t){ const k=Math.min(1,(t-t0)/700); if(job!==plantJob) return; map.setPaintProperty('trees3d','fill-extrusion-opacity',k); if(k<1) requestAnimationFrame(f); })(t0); } };
+  idle(tick); }
+function rnd(a){ const x=Math.sin(a*12.9898)*43758.5453; return x-Math.floor(x); }
+
+/* parcela: sombra, jardín y piscina, pegados al relieve */
+const gnd={type:'FeatureCollection',features:[]};
+function hull(pts){ pts=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]); const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]); const lo=[],up=[];
+  for(const p of pts){ while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0) lo.pop(); lo.push(p); }
+  for(const p of pts.reverse()){ while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0) up.pop(); up.push(p); }
+  const h=lo.slice(0,-1).concat(up.slice(0,-1)); h.push(h[0]); return h; }
+function grounds(i){ const q=RES[i], x=P[i].x||{}, f=q.fp, ll=q.ll, G=(c,co)=>gnd.features.push({type:'Feature',properties:{c},geometry:{type:'Polygon',coordinates:co}});
+  if(x.garden&&!P[i].fp.osm) G('plot',[rect(ll,f.w+12,f.d+16,f.rot)]);
+  const L=P[i].floors*FH*.8, a=20*toR, k=Math.cos(ll[1]*toR), dx=L*Math.sin(a)/(111320*k), dy=L*Math.cos(a)/110540;
+  const base=FOOT[i][0].slice(0,-1); G('shadow',[hull(base.concat(base.map(p=>[p[0]+dx,p[1]+dy])))]);
+  if(x.pool){ if(f.court) G('pool',[rect(ll,f.court-3.5,3.2,f.rot)]); else G('pool',[rect(ll,Math.min(12,f.w*.45),4.5,f.rot,f.w*.18,-(f.d/2+5.5))]); }
+  const s=map.getSource('gnd'); if(s) s.setData(gnd); }
+function rise(i){ footprint(i); const N=P[i].floors; shown.set(i,0); rebuild(); let k=0;
+  (function f(){ if(!shown.has(i)) return; shown.set(i,++k); rebuild(); if(k<N) setTimeout(f,170); })(); }
+function settleOthers(i){ [...shown.keys()].forEach(j=>{ if(j!==i){ shown.set(j,P[j].floors); } }); rebuild(); }
+
+map.on('load',()=>{
+  if(!map.hasImage('tree')) map.addImage('tree',treeImg(),{pixelRatio:2});
+  map.addSource('vol',{type:'geojson',data:vol});
+  map.addLayer({id:'vol',type:'fill-extrusion',source:'vol',paint:{
+    'fill-extrusion-color':['match',['get','c'],'slab','#03505e','glass','#8fc0c8','roof',C.roof,'bal','#0b6676','rail','#d6e9ec','deck','#d2bc98','water','#56bfd3',C.brand],
+    'fill-extrusion-base':['get','b'],'fill-extrusion-height':['get','h'],'fill-extrusion-opacity':1,'fill-extrusion-vertical-gradient':false}});
+  map.addSource('cut',{type:'geojson',data:cut});
+  map.addLayer({id:'bldg-cut',type:'fill-extrusion',source:'cut',minzoom:13.5,paint:{'fill-extrusion-color':map.getPaintProperty('bldg','fill-extrusion-color'),
+    'fill-extrusion-height':['max',['coalesce',['get','height'],9],3],'fill-extrusion-base':['coalesce',['get','min_height'],0],'fill-extrusion-opacity':.95,'fill-extrusion-vertical-gradient':true}},'vol');
+  map.addSource('trees3d',{type:'geojson',data:trees});
+  map.addLayer({id:'trees3d',type:'fill-extrusion',source:'trees3d',minzoom:14.5,paint:{'fill-extrusion-color':['get','c'],'fill-extrusion-base':['get','b'],
+    'fill-extrusion-height':['get','h'],'fill-extrusion-opacity':1,'fill-extrusion-vertical-gradient':true}});
+  map.addSource('gnd',{type:'geojson',data:gnd});
+  map.addLayer({id:'gnd',type:'fill',source:'gnd',paint:{'fill-color':['match',['get','c'],'plot','#dfe6cc','pool','#7ccbd9','shadow','#3a3a2a','#ccc'],
+    'fill-opacity':['match',['get','c'],'shadow',.13,.95],'fill-antialias':true}},'bldg');
+  map.addLayer({id:'gnd-line',type:'line',source:'gnd',filter:['==',['get','c'],'plot'],paint:{'line-color':C.brand,'line-width':1.2,'line-opacity':.55,'line-dasharray':[2,2]}},'bldg');
+  map.addSource('route',{type:'geojson',lineMetrics:true,data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
+  map.addLayer({id:'route',type:'line',source:'route',layout:{'line-cap':'round'},paint:{'line-color':C.brand,'line-width':2,'line-opacity':.65,'line-dasharray':[1,2.5]}},'bldg');
+});
+function drawRoute(a,b){ const s=map.getSource('route'); if(!s) return; const N=60, t0=performance.now();
+  (function f(t){ const k=Math.min(1,(t-t0)/1600), n=Math.max(2,Math.round(N*k)), pts=[]; for(let j=0;j<=n;j++){ const u=j/n*k; pts.push([a[0]+(b[0]-a[0])*u,a[1]+(b[1]-a[1])*u]); }
+    s.setData({type:'Feature',geometry:{type:'LineString',coordinates:pts}}); if(k<1) requestAnimationFrame(f); })(t0); }
+
+/* =========================================================================
+   Marcadores
+   ========================================================================= */
+const MK=P.map((p,i)=>{ const el=document.createElement('div'); el.className='mk'+(p.status?' done':'');
+  el.innerHTML=`<span class="lb">${p.name}</span><span class="bub"><img src="img/m/${p.img}.jpg" alt=""></span><span class="stem"></span>`;
+  el.addEventListener('click',e=>{ e.stopPropagation(); go(i); });
+  return new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat(p.ll).addTo(map); });
+LM.forEach(([n,ll])=>{ const el=document.createElement('div'); el.className='lm'; el.textContent=n; new maplibregl.Marker({element:el}).setLngLat(ll).addTo(map); });
+ZL.forEach(([n,ll])=>{ const el=document.createElement('div'); el.className='zl'; el.textContent=n; new maplibregl.Marker({element:el}).setLngLat(ll).addTo(map); });
+/* según el zoom: de lejos solo zonas y puntos, de cerca etiquetas y referencias */
+function lod(){ const z=map.getZoom(), L=z<11.5?'far':z<14.5?'mid':'near'; document.body.dataset.lod=L; let c=-1; try{ c=cur; }catch(e){}
+  MK.forEach((m,j)=>m.getElement().classList.toggle('away',L==='near'&&c>=0&&j!==c&&dist(P[j].ll,P[c].ll)>1500)); }
+let lodT=0; map.on('zoom',()=>{ if(!lodT) lodT=requestAnimationFrame(()=>{ lodT=0; lod(); }); }); lod();
+
+/* tarjeta */
+function buildRail(){ let h='', z='';
+  P.forEach((p,i)=>{ if(p.zone!==z){ z=p.zone; h+=`<div class="z">${z}</div>`; } h+=`<button class="s" data-i="${i}"><span>${p.name}</span><b></b></button>`; });
+  $('rail').innerHTML=h; [...$('rail').querySelectorAll('.s')].forEach(b=>b.onclick=()=>{ if(freeMode) toggleFree(false); go(+b.dataset.i); }); }
+function railTo(i){ [...$('rail').querySelectorAll('.s')].forEach(b=>{ const j=+b.dataset.i; b.classList.toggle('on',j===i); if(j===i) b.classList.add('seen'); }); }
+function fill(i){ const p=P[i];
+  const n=P[i+1]; $('cNx').hidden=!n;
+  if(n){ const same=n.zone===p.zone, km=dist(p.ll,n.ll)/1000;
+    $('cNx').innerHTML=`<span><small>${same?'Siguiente parada':'Siguiente zona · '+n.zone}</small>${n.name}${same?' · '+(km<1?Math.round(km*1000)+' m':km.toFixed(1).replace('.',',')+' km'):''}</span><i>→</i>`;
+    $('cNx').onclick=()=>go(i+1); }
+  slides(GAL[p.id]||[p.img]); $('cName').textContent=p.name; $('cZn').textContent=p.zone+' · '+p.place; $('cMeta').textContent=p.meta;
+  $('cNear').innerHTML=p.near.map(n=>`<span>${n}</span>`).join(''); $('cGo').href=promoURL(p.id);
+  $('cIx').textContent=pad(i+1)+' / '+pad(P.length); const st=$('cSt'); st.hidden=!p.status; st.textContent=p.status||''; }
+
+/* fotos que van pasando en la tarjeta */
+const GAL={"ilana":["il-pinar","il-aerea","il-esquina","il-jardines","il-v8-salon","il-v2-cocina"],"park":["pr-piscina","pr-conjunto","pr-fachada","pr-aerea","pr-terraza","pr-cocina"],"park-ii":["p2-aerea","p2-patio","p2-jardin","p2-terraza","p2-salon"],"arturo":["as-piscina","as-volumen","as-salon","as-salon2","as-dormitorio"],"abel":["ab-fachada","ab-fachada2","ab-terraza","ab-salon","ab-cocina2","ab-dormitorio"],"golf-terraces":["gt-fachada","gt-exterior","gt-piscina","gt-frontal","gt-acceso","gt-salon"],"hamilton":["hg-fachada","hg-fachada2","hg-piscina","hg-patio","hg-galeria","hg-salon"],"monestir":["mh-fachada","mh-salon","mh-cocina","mh-dormitorio","mh-bano"],"factory":["fh-fachada","fh-sagrada","fh-rooftop","fh-cocina","fh-salon","fh-dormitorio"],"mirador":["mg-fachada","mg-fachada2","mg-piscina","mg-salon","mg-cocina","mg-dormitorio"],"varsovia":["va-fachada","va-cubierta","va-terraza-privada","va-salon-comedor","va-salon-balcon","va-terraza"],"universal":["un-fachada","un-piscina","un-azotea","un-azoteas","un-salon-jardin","un-salon-jardin2"]};
+let sl={list:[],k:0,t:0}; const DUR=3800;
+function slides(list){ clearTimeout(sl.t); sl={list,k:0,t:0};
+  $('cImgs').innerHTML=list.map((f,j)=>`<img src="img/m/${f}.jpg" alt="" decoding="async"${j>1?' loading="lazy"':''}>`).join('');
+  $('cDots').innerHTML=list.map(()=>'<i><b></b></i>').join(''); $('cDots').style.setProperty('--dur',DUR+'ms');
+  [...$('cDots').children].forEach((d,j)=>d.onclick=()=>show(j)); show(0); }
+function show(k){ const n=sl.list.length; if(!n) return; sl.k=(k+n)%n; clearTimeout(sl.t);
+  [...$('cImgs').children].forEach((im,j)=>im.classList.toggle('on',j===sl.k));
+  [...$('cDots').children].forEach((d,j)=>{ d.classList.remove('on'); d.classList.toggle('done',j<sl.k); if(j===sl.k){ void d.offsetWidth; d.classList.add('on'); } });
+  if(n>1) sl.t=setTimeout(()=>show(sl.k+1),DUR); }
+$('cPrev').onclick=()=>show(sl.k-1); $('cNext').onclick=()=>show(sl.k+1);
+/* móvil: la tarjeta se despliega al tocarla; deslizar a los lados = otra promoción */
+let cx=null, cy=null;
+$('card').addEventListener('touchstart',e=>{ cx=e.touches[0].clientX; cy=e.touches[0].clientY; },{passive:true});
+$('card').addEventListener('touchend',e=>{ if(cx==null) return; const dx=e.changedTouches[0].clientX-cx, dy=e.changedTouches[0].clientY-cy; cx=cy=null;
+  if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.3&&!e.target.closest('.ph')){ go(cur+(dx<0?1:-1)); return; }
+  if(dy<-40) $('card').classList.add('open'); else if(dy>40){ if($('card').classList.contains('open')) $('card').classList.remove('open'); else $('card').classList.remove('on'); } },{passive:true});
+$('card').querySelector('.bd').addEventListener('click',e=>{ if(MOB&&!e.target.closest('a')) $('card').classList.toggle('open'); });
+$('card').addEventListener('mouseenter',()=>{ clearTimeout(sl.t); const o=$('cDots').querySelector('.on b'); if(o) o.style.animationPlayState='paused'; });
+$('card').addEventListener('mouseleave',()=>{ const o=$('cDots').querySelector('.on b'); if(o) o.style.animationPlayState='running'; if(sl.list.length>1) sl.t=setTimeout(()=>show(sl.k+1),DUR*.5); });
+
+/* =========================================================================
+   Recorrido
+   ========================================================================= */
+let cur=-1, busy=false, freeMode=false, flightId=0;
+function legTitle(k,t){ $('legK').textContent=k; $('legT').textContent=t; $('leg').classList.add('on'); clearTimeout(legTitle.t); legTitle.t=setTimeout(()=>$('leg').classList.remove('on'),2400); }
+function camFor(p){ const c=Object.assign({center:p.ll,offset:freeMode&&!MOB?[0,60]:(MOB?[0,-Math.round(innerHeight*.2)]:[200,50])},p.cam); if(MOB&&c.zoom) c.zoom-=.45; return c; }
+function go(i){
+  if(i<0||i>=P.length) return;
+  const prev=cur, p=P[i], id=++flightId; cur=i; busy=true; stopOrbit();
+  $('intro').classList.add('gone'); document.body.classList.remove('intro-on'); $('card').classList.remove('on','open'); clearTimeout(sl.t);
+  MK.forEach((m,j)=>m.getElement().classList.toggle('on',j===i)); plantJob++;
+  const far=prev<0||P[prev].zone!==p.zone;
+  if(far) legTitle(prev<0?'Primera parada':'Siguiente zona',p.zone);
+  const arrive=()=>{ if(id!==flightId) return; const c=camFor(p); if(Math.abs(map.getZoom()-(c.zoom||17.7))>.2) map.easeTo(Object.assign(c,{duration:700})); busy=false; lock=Date.now()+1000; settleOthers(i); rise(i); setTimeout(()=>{ if(id===flightId) plant(i); },P[i].floors*170+250); fill(i); $('card').classList.add('on'); if(!freeMode) startOrbit(); };
+  if(far&&prev>=0&&dist(P[prev].ll,p.ll)>5000){ // zona lejana: sube a las nubes y aparece en el destino
+    const c=$('clouds'), cam=camFor(p);
+    c.classList.remove('out'); void c.offsetWidth; c.classList.add('in');
+    map.easeTo({zoom:map.getZoom()-1.1,pitch:Math.min(72,map.getPitch()+10),bearing:map.getBearing()-12,duration:800,easing:t=>t*t,essential:true});
+    setTimeout(()=>{ if(id!==flightId) return;
+      map.jumpTo({center:p.ll,zoom:(cam.zoom||17.5)-1.5,pitch:70,bearing:(cam.bearing||0)-35});
+      let done=false; const reveal=()=>{ if(done||id!==flightId) return; done=true; c.classList.remove('in'); c.classList.add('out');
+        map.easeTo(Object.assign(camFor(p),{duration:1700,easing:t=>1-Math.pow(1-t,3),essential:true})); map.once('moveend',arrive); };
+      map.once('idle',reveal); setTimeout(reveal,900); },820);
+  } else if(far&&prev>=0){
+    map.flyTo(Object.assign(camFor(p),{duration:3000,essential:true,curve:1.3})); map.once('moveend',arrive);
+  } else {
+    map.flyTo(Object.assign(camFor(p),{duration:prev<0?4600:3000,essential:true,curve:1.4}));
+    map.once('moveend',arrive);
+  }
+  $('prog').textContent=pad(i+1)+' / '+pad(P.length); railTo(i);
+  $('prev').disabled=i===0; $('next').disabled=i===P.length-1;
+  [...$('zones').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.z===p.zone));
+}
+let orbitRAF=0;
+function stopOrbit(){ cancelAnimationFrame(orbitRAF); orbitRAF=0; }
+function startOrbit(){ stopOrbit(); let last=performance.now();
+  (function f(t){ if(busy||freeMode||document.hidden) return; const dt=Math.min(34,t-last); last=t; map.setBearing(map.getBearing()+dt/1000*1.6); orbitRAF=requestAnimationFrame(f); })(last); }
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&cur>=0&&!busy&&!freeMode) startOrbit(); });
+['mousedown','touchstart','wheel'].forEach(ev=>map.getCanvasContainer().addEventListener(ev,stopOrbit,{passive:true}));
+
+/* zonas y flechas */
+ZONES.forEach(([z,i])=>{ const b=document.createElement('button'); b.textContent=z; b.dataset.z=z; b.setAttribute('aria-pressed','false');
+  if(i<0){ b.classList.add('soon'); b.title='Próximamente'; } else b.addEventListener('click',()=>{ if(freeMode) fitZone(z); else go(i); }); $('zones').appendChild(b); });
+$('prev').onclick=()=>{ if(freeMode) toggleFree(false); go(cur-1); }; $('next').onclick=()=>{ if(freeMode) toggleFree(false); go(cur+1); };
+
+/* exploración libre: el mapa se suelta, las promociones siguen localizables */
+let REGNOW='cat';
+function lockRegion(r){ REGNOW=r; map.setMaxBounds(REG[r].b); map.setMinZoom(REG[r].z); map.setMaxPitch(70); }
+function freeRelease(){ map.setMaxBounds(null); map.setMinZoom(0); map.setMaxPitch(80); }
+function toggleFree(on){ freeMode=on; document.body.classList.toggle('free',on); $('free').textContent=on?(MOB?'Recorrido':'Volver al recorrido'):(MOB?'Explorar':'Explorar libremente');
+  if(on){ stopOrbit(); map.scrollZoom.enable(); map.dragRotate.enable(); map.touchZoomRotate.enableRotation(); $('card').classList.remove('on');
+    const r=regOf(cur>=0?P[cur].zone:'Barcelona'), b=new maplibregl.LngLatBounds(); P.filter(p=>regOf(p.zone)===r).forEach(p=>b.extend(p.ll));
+    freeRelease(); map.fitBounds(b,{padding:MOB?{top:90,bottom:200,left:40,right:40}:{top:120,bottom:140,left:80,right:80},maxZoom:15.4,pitch:45,bearing:-15,duration:2400,essential:true});
+    map.once('moveend',()=>{ if(freeMode) lockRegion(r); }); }
+  else { freeRelease(); map.scrollZoom.disable(); map.touchZoomRotate.disableRotation(); } }
+function fitZone(z){ const b=new maplibregl.LngLatBounds(); P.filter(p=>p.zone===z).forEach(p=>b.extend(p.ll)); const r=regOf(z);
+  if(r!==REGNOW) freeRelease();
+  map.fitBounds(b,{padding:MOB?{top:100,bottom:220,left:50,right:50}:{top:160,bottom:180,left:140,right:140},maxZoom:15.6,pitch:55,bearing:-15,duration:r!==REGNOW?3600:2200,essential:true});
+  map.once('moveend',()=>{ if(freeMode) lockRegion(r); });
+  [...$('zones').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.z===z)); }
+$('free').onclick=()=>{ if(freeMode){ toggleFree(false); go(Math.max(cur,0)); } else toggleFree(true); };
+map.on('click',()=>{ if(freeMode) $('card').classList.remove('on'); else if(cur<0) step(1); });
+
+/* scroll / swipe / teclado = siguiente parada */
+let lock=0;
+function step(d){ const now=Date.now(); if(freeMode||busy||now<lock) return; lock=now+1200; go(cur<0?0:cur+d); }
+let lastW=0, gap=true;
+addEventListener('wheel',e=>{ if(freeMode) return; e.preventDefault(); const now=Date.now(), quiet=now-lastW>450; lastW=now; if(quiet) gap=true; if(!gap||Math.abs(e.deltaY)<8) return; gap=false; step(e.deltaY>0?1:-1); },{passive:false});
+let ty=null; addEventListener('touchstart',e=>{ ty=e.touches[0].clientY; },{passive:true});
+addEventListener('touchend',e=>{ if(ty==null||freeMode) return; const d=ty-e.changedTouches[0].clientY; if(Math.abs(d)>50&&!e.target.closest('.zones,.card')) step(d>0?1:-1); ty=null; },{passive:true});
+addEventListener('keydown',e=>{ if(freeMode) return; if(['ArrowDown','ArrowRight','PageDown',' '].includes(e.key)){ e.preventDefault(); step(1);} if(['ArrowUp','ArrowLeft','PageUp'].includes(e.key)){ e.preventDefault(); step(-1);} });
+
+/* entrada */
+buildRail();
+/* las texturas SVG (nubes y grano) se convierten a imagen una vez: animarlas cuesta casi nada */
+function bake(el,size){ const v=getComputedStyle(el).backgroundImage; if(!v.startsWith('url("data:image/svg')) return; const src=v.slice(5,-2).replace(/\\"/g,'"');
+  const im=new Image(); im.onload=()=>{ const c=document.createElement('canvas'); c.width=c.height=size; c.getContext('2d').drawImage(im,0,0,size,size); try{ c.toBlob(b=>{ if(b) el.style.backgroundImage=`url(${URL.createObjectURL(b)})`; }); }catch(e){} };
+  im.src=src; }
+idle(()=>{ document.querySelectorAll('.clouds i').forEach(el=>bake(el,768)); });
+$('iSub').textContent=P.length+' promociones · Barcelona, Sant Cugat, Costa Brava y Madrid';
+if(MOB){ $('free').textContent='Explorar'; document.querySelector('.intro .scroll span').innerHTML='Desliza o toca <b>para empezar</b>'; }
+/* mientras está la portada, la vista aérea se desliza muy despacio */
+map.on('load',()=>{ if(EMBED) return; if(cur<0&&!location.hash) map.easeTo({center:[2.098,41.447],zoom:map.getZoom()+.3,bearing:-8,duration:60000,easing:t=>t,essential:true}); });
+if(EMBED){ document.body.classList.remove('intro-on');
+  let run=true, raf=0; const spin=()=>{ cancelAnimationFrame(raf); let last=performance.now(); (function f(t){ if(!run) return; const dt=Math.min(34,t-last); last=t; map.setBearing(map.getBearing()+dt/1000*2.2); raf=requestAnimationFrame(f); })(last); };
+  map.once('load',()=>{ const b=new maplibregl.LngLatBounds(); P.filter(p=>regOf(p.zone)==='cat'&&p.zone!=='Gavà Mar').forEach(p=>b.extend(p.ll));
+    map.fitBounds(b,{padding:60,pitch:56,bearing:-20,duration:0}); map.setZoom(map.getZoom()+.25); spin(); });
+  addEventListener('message',e=>{ if(e.data==='pause'){ run=false; cancelAnimationFrame(raf); } if(e.data==='play'&&!run){ run=true; spin(); } }); }
+if(location.hash&&!EMBED){ const i=P.findIndex(p=>p.id===location.hash.slice(1)); if(i>=0){ document.body.classList.remove('intro-on'); $('intro').classList.add('gone'); map.once('load',()=>setTimeout(()=>go(i),300)); } }
+})();
+</script>
+
+</body>
+</html>
