@@ -1,7 +1,6 @@
 <!doctype html><html lang="es"><head>
 <meta name="robots" content="noindex,nofollow">
-<meta property="og:type" content="website"><meta property="og:site_name" content="Shevat"><meta property="og:title" content="Promociones · Shevat"><meta property="og:description" content="Las 12 promociones de Shevat, con renders, planos y memoria de calidades."><meta property="og:image" content="https://isaacayash06.github.io/shevat.es_/img/og/shevat.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta property="og:type" content="website"><meta property="og:title" content="Promociones · Shevat"><meta property="og:image" content="https://isaacayash06.github.io/shevat.es_/img/og/shevat.jpg"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Promociones · Shevat</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1539,7 +1538,7 @@ function renderListing(){
   };
   const paint=(anim=true)=>{
     const list=data.filter(d=>pass(d,cur,st));
-    grid.classList.toggle('editorial',kind==='promos'); grid.innerHTML=list.length?(kind==='promos'?list.map((p,j)=>listCardHTML(p,PROMOS.indexOf(p)).replace('class="lcard"',`class="lcard ${['w7','w5','w5','w7'][j%4]}${(list.length%2&&j===list.length-1)?' w12':''}"`)).join(''):list.map(workHTML).join('')):'<p class="pc-empty">No hay promociones con estos filtros ahora mismo.</p>';
+    grid.classList.toggle('editorial',kind==='promos'); grid.innerHTML=list.length?(kind==='promos'?list.map((p,j)=>listCardHTML(p,PROMOS.indexOf(p)).replace('class="lcard',`class="lcard ${(list.length%2&&j===list.length-1)?'w12':['w7','w5','w5','w7'][j%4]} `)).join(''):list.map(workHTML).join('')):'<p class="pc-empty">No hay promociones con estos filtros ahora mismo.</p>';
     if(kind==='promos') $$('.lcard',grid).forEach(bindCard);
     $('#listCount').textContent=list.length+(kind==='promos'?(list.length===1?' promoción':' promociones'):(list.length===1?' obra':' obras'));
     if(G&&anim) gsap.from(grid.children,{opacity:0,y:50,duration:1.1,ease:'power3.out',stagger:.07,clearProps:'opacity,transform'});
