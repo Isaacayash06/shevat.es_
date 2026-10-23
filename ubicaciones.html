@@ -1,11 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta name="robots" content="noindex,nofollow">
-<meta property="og:type" content="website"><meta property="og:site_name" content="Shevat"><meta property="og:title" content="Dónde construimos · Mapa 3D · Shevat"><meta property="og:description" content="Recorre en 3D las promociones de Shevat."><meta property="og:image" content="https://isaacayash06.github.io/shevat.es_/img/og/shevat.jpg"><meta name="twitter:card" content="summary_large_image">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Dónde construimos · Shevat</title>
+<meta name="robots" content="noindex,nofollow"><meta property="og:type" content="website"><meta property="og:site_name" content="Shevat"><meta property="og:title" content="Dónde construimos · Mapa 3D · Shevat"><meta property="og:description" content="Recorre en 3D las promociones de Shevat."><meta property="og:image" content="https://isaacayash06.github.io/shevat.es_/img/og/shevat.jpg"><meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&family=Montserrat:wght@600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap">
@@ -110,6 +109,9 @@ body.intro-on .top{background:none}
 .card .bd{padding:20px 22px 22px;display:grid;gap:10px}
 .card .zn{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;opacity:.65}
 .card h3{margin:0;font:300 30px/1 "Jost",sans-serif;letter-spacing:-.02em;color:var(--brand)}
+.card .ad{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-size:12.5px;line-height:1.45}
+.card .ad a{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:inherit;opacity:.7;text-decoration:none;border-bottom:1px solid currentColor;white-space:nowrap}
+.card .ad a:hover{opacity:1}
 .card .mt{margin:0;font-size:14px;line-height:1.55;opacity:.85}
 .card .nr{display:flex;flex-wrap:wrap;gap:6px 14px;margin:2px 0 4px;padding:12px 0 0;border-top:1px solid var(--line);font-size:12.5px;opacity:.85}
 .card .nr span::before{content:"↳ ";opacity:.5}
@@ -245,7 +247,7 @@ body.free .mk{cursor:pointer}
 
 <article class="card" id="card" aria-live="polite">
   <div class="ph" id="cPh"><div id="cImgs"></div><button class="nv l" id="cPrev" aria-label="Foto anterior"></button><button class="nv r" id="cNext" aria-label="Foto siguiente"></button><div class="dots" id="cDots"></div><span class="st" id="cSt" hidden></span><span class="ix" id="cIx"></span></div>
-  <div class="bd"><span class="zn" id="cZn"></span><h3 id="cName"></h3><p class="mt" id="cMeta"></p><div class="nr" id="cNear"></div>
+  <div class="bd"><span class="zn" id="cZn"></span><h3 id="cName"></h3><p class="ad"><span id="cAd"></span><a id="cDir" target="_blank" rel="noopener">Cómo llegar ↗</a></p><p class="mt" id="cMeta"></p><div class="nr" id="cNear"></div>
   <a class="go" id="cGo" href="#">Ver promoción →</a><button class="nx" id="cNx"></button></div>
 </article>
 
@@ -277,21 +279,23 @@ const P=[
   meta:'22 viviendas · dúplex y pisos con terraza · piscina en la azotea',near:['Torre Glòries · 600 m','Parc del Clot · 4 min'],cam:{zoom:17.7,bearing:-40,pitch:60}},
  {id:'monestir',zone:'Sant Cugat',name:'Monestir Homes',place:'C/ Creu, 41 · C/ Montserrat, 31',ll:[2.08780,41.47361],floors:4,fp:{w:24,d:13,rot:-4},img:'mh-fachada',x:{garden:1},
   meta:'6 viviendas · 2 casas con garaje y 4 pisos con terraza',near:['Monasterio · 1 calle','FGC Sant Cugat · 6 min'],cam:{zoom:18,bearing:15,pitch:60}},
- {id:'golf-terraces',zone:'Sant Cugat',name:'Golf Terraces',place:'Calle peatonal · Pla de la Pagesa',ll:[2.07385,41.46691],floors:3,fp:{w:28,d:14,rot:-26},img:'gt-fachada',x:{pool:1,garden:1,turret:1},
+ {id:'golf-terraces',zone:'Sant Cugat',name:'Golf Terraces',place:'C/ Álvarez, 19 · Sant Cugat',ll:[2.07364,41.467775],floors:3,fp:{w:28,d:14,rot:18},img:'gt-fachada',x:{pool:1,garden:1,turret:1},
   meta:'6 viviendas · 4 dormitorios · jardín, terraza o azotea privada',near:['FGC Sant Cugat · 5 min','Club de Golf · 7 min'],cam:{zoom:17.8,bearing:-10,pitch:62}},
- {id:'hamilton',zone:'Sant Cugat',name:'Hamilton Gardens',place:'C/ Pere Calders, 33 · Volpelleres',ll:[2.06619,41.48478],floors:5,fp:{w:28,d:31,rot:-26,court:10},img:'hg-fachada',x:{pool:1,garden:1,step:2},
+ {id:'hamilton',zone:'Sant Cugat',name:'Hamilton Gardens',place:'C/ Pere Calders, 33 · Volpelleres',ll:[2.06688,41.48433],floors:5,fp:{w:28,d:31,rot:-36,court:10},img:'hg-fachada',x:{pool:1,garden:1,step:2},
   meta:'20 viviendas · 3 y 4 dormitorios · jardín, galería o azotea',near:['FGC Volpelleres · 6 min','Parc Central · 4 min'],cam:{zoom:17.6,bearing:25,pitch:60}},
  {id:'ilana',zone:'Gavà Mar',name:'ILANA',place:'C/ Begur esq. Av. Europa · Gavà Mar',ll:[2.0357,41.2702],floors:4,fp:{w:64,d:22,rot:0},img:'il-pinar',x:{pool:1,garden:1,step:2.5},
   meta:'34 viviendas · 2, 3 y 4 dormitorios · jardines privados y terrazas junto al pinar',near:['Playa · 100 m','Pinar de Gavà Mar'],cam:{zoom:17.2,bearing:-25,pitch:60}},
- {id:'park',zone:'Costa Brava',name:'Park Residences III',place:"Av. París, 9 · Platja d'Aro",ll:[3.05867,41.81442],floors:3,fp:{w:52,d:15,rot:90},img:'pr-piscina',x:{pool:1,garden:1},
+ {id:'park',zone:'Costa Brava',name:'Park Residences III',place:"Av. de París, 60 · Platja d'Aro",ll:[3.05744,41.81113],floors:3,fp:{w:52,d:15,rot:79},img:'pr-piscina',x:{pool:1,garden:1},
   meta:'24 viviendas · 3 y 4 dormitorios · dos bloques de planta baja + 2',near:['Parc dels Estanys · 1 min','Playa · 10 min'],cam:{zoom:17.2,bearing:20,pitch:60}},
- {id:'park-ii',zone:'Costa Brava',name:'Park Residences II',place:"C/ Roma, 18 · Platja d'Aro",ll:[3.05867,41.81141],floors:3,fp:{w:62,d:56,rot:0,court:30},img:'p2-aerea',x:{pool:1,garden:1},
+ {id:'park-ii',zone:'Costa Brava',name:'Park Residences II',place:"C/ Roma, 18 · Platja d'Aro",ll:[3.05800,41.81099],floors:3,fp:{w:62,d:56,rot:0,court:30},img:'p2-aerea',x:{pool:1,garden:1},
   meta:'44 viviendas · 2, 3 y 4 dormitorios · cuatro bloques alrededor del jardín',near:['Parc dels Estanys · 3 min','Playa · 8 min'],cam:{zoom:17,bearing:-20,pitch:60}},
- {id:'arturo',zone:'Madrid',name:'Arturo Soria Hills',place:'C/ Luis Carlos Vázquez, 8 · Ciudad Lineal',ll:[-3.65465,40.45554],floors:4,fp:{osm:1,w:16,d:13},img:'as-piscina',x:{deck:1},
+ {id:'arturo',zone:'Madrid',name:'Arturo Soria Hills',place:'C/ Luis Carlos Vázquez, 8 · Ciudad Lineal',ll:[-3.6548011,40.455092],floors:4,fp:{osm:1,w:16,d:13},img:'as-piscina',x:{deck:1},
   meta:'7 viviendas de 2 dormitorios · piscina comunitaria',near:['Ciudad Lineal','Junto a la calle Arturo Soria'],cam:{zoom:17.9,bearing:-30,pitch:60}},
  {id:'abel',zone:'Madrid',name:'Las Terrazas de Abel',place:'C/ Abel, 12 · Bellas Vistas, Tetuán',ll:[-3.70809,40.45033],floors:5,fp:{osm:1,w:14,d:14},img:'ab-fachada',status:'Entregada',x:{step:2},
   meta:'11 viviendas de 1 y 2 dormitorios · tres áticos con terraza',near:['Bellas Vistas · Tetuán','Cerca de Bravo Murillo'],cam:{zoom:18,bearing:25,pitch:60}},
 ];
+/* dirección completa (la misma que la ficha de cada promoción) */
+const ADDR={"ilana": "C/ Begur esquina Av. Europa, Gavà Mar (Barcelona)", "golf-terraces": "C/ Álvarez, 19, 08173 Sant Cugat del Vallès (Barcelona)", "hamilton": "C/ Pere Calders, 33, 08174 Sant Cugat del Vallès (Barcelona)", "park": "Av. de París, 60, 17250 Platja d'Aro (Girona)", "park-ii": "C/ Roma, 18, 17250 Platja d'Aro (Girona)", "monestir": "C/ Creu, 41, C/ Montserrat, 31 y C/ Sant Llorenç, 38, Sant Cugat del Vallès (Barcelona)", "arturo": "C/ Luis Carlos Vázquez, 8, 28043 Madrid", "factory": "C/ Gabriel y Galán, 5-11, Barcelona", "mirador": "Passeig de Coll, 92, Vallcarca, Barcelona", "abel": "C/ Abel, 12, Bellas Vistas (Tetuán), Madrid", "varsovia": "C/ Varsovia, 137-139, Barcelona", "universal": "Passeig Universal, 21-29, Horta, Barcelona"};
 const LM=[['Park Güell',[2.1527,41.4145]],['Sagrada Família',[2.1744,41.4036]],['Torre Glòries',[2.1894,41.4034]],['Hospital de Sant Pau',[2.1745,41.4114]],
  ['Parc del Guinardó',[2.1680,41.4185]],['Tibidabo',[2.1189,41.4220]],['Monasterio de Sant Cugat',[2.0853,41.4743]],['Club de Golf Sant Cugat',[2.0770,41.4629]],['Parc Central',[2.0721,41.4750]],['Búnquers del Carmel',[2.1617,41.4189]],['Parc del Clot',[2.1876,41.4096]],['Playa de Gavà',[2.0372,41.2672]],['Parc dels Estanys',[3.0556,41.8124]],['Platja Gran',[3.0688,41.8140]],['Estadio Bernabéu',[-3.6883,40.4531]],['Cuatro Torres',[-3.6890,40.4770]],['FGC Volpelleres',[2.0644,41.4867]]];
 const ZL=[['Barcelona',[2.170,41.392]],['Sant Cugat del Vallès',[2.078,41.468]],['Collserola',[2.105,41.440]],['Gavà Mar',[2.028,41.276]],["Platja d'Aro",[3.064,41.820]],['Madrid',[-3.692,40.440]]];
@@ -555,7 +559,7 @@ function fill(i){ const p=P[i];
   if(n){ const same=n.zone===p.zone, km=dist(p.ll,n.ll)/1000;
     $('cNx').innerHTML=`<span><small>${same?'Siguiente parada':'Siguiente zona · '+n.zone}</small>${n.name}${same?' · '+(km<1?Math.round(km*1000)+' m':km.toFixed(1).replace('.',',')+' km'):''}</span><i>→</i>`;
     $('cNx').onclick=()=>go(i+1); }
-  slides(GAL[p.id]||[p.img]); $('cName').textContent=p.name; $('cZn').textContent=p.zone+' · '+p.place; $('cMeta').textContent=p.meta;
+  slides(GAL[p.id]||[p.img]); $('cName').textContent=p.name; $('cAd').textContent=ADDR[p.id]||p.place; $('cDir').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ADDR[p.id]||p.place); $('cZn').textContent=p.zone+' · '+p.place; $('cMeta').textContent=p.meta;
   $('cNear').innerHTML=p.near.map(n=>`<span>${n}</span>`).join(''); $('cGo').href=promoURL(p.id);
   $('cIx').textContent=pad(i+1)+' / '+pad(P.length); const st=$('cSt'); st.hidden=!p.status; st.textContent=p.status||''; }
 
