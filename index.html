@@ -2,8 +2,7 @@
 <html lang="es">
 <meta charset="utf-8">
 <meta name="robots" content="noindex,nofollow">
-<meta property="og:type" content="website"><meta property="og:site_name" content="Shevat"><meta property="og:title" content="Shevat · Promotora inmobiliaria en Barcelona y Madrid"><meta property="og:description" content="Promociones de obra nueva en Barcelona, Sant Cugat, la Costa Brava y Madrid."><meta property="og:image" content="https://isaacayash06.github.io/shevat.es_/img/og/shevat.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">
-
+<meta property="og:type" content="website"><meta property="og:site_name" content="Shevat"><meta property="og:title" content="Shevat · Promotora inmobiliaria en Barcelona y Madrid"><meta property="og:description" content="Promociones de obra nueva en Barcelona, Sant Cugat, la Costa Brava y Madrid."><meta property="og:image" content="https://isaacayash06.github.io/shevat.es_/img/og/shevat.jpg"><meta name="twitter:card" content="summary_large_image">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="Shevat, promotora y constructora en Barcelona y Madrid. Promociones de obra nueva en Barcelona, Madrid y la Costa Brava.">
 <title>Shevat · Promotora inmobiliaria en Barcelona y Madrid</title>
@@ -1285,12 +1284,12 @@ a.work .a-go{margin-top:6px;opacity:.8}
   <div class="cine-body">
     <span class="eyebrow"><span>Desde 2006</span><span class="rule"></span></span>
     <h2 class="display h-lg"><span class="l">Promovemos</span><span class="l i1">lo que</span><span class="l i2"><em>construimos.</em></span></h2>
-    <p class="lede">Shevat nace en Barcelona en 2006, fundada por Uriel Benguigui. Nuestro equipo de ingenieros, arquitectos, aparejadores y jefes de obra viene de constructoras de primer nivel. Seguridad, calidad y plazos son nuestra prioridad, y firmamos con cada cliente garantías estrictas de entrega.</p>
+    <p class="lede">Shevat nace en Barcelona en 2006, fundada por un equipo de ingenieros, arquitectos y aparejadores forjado en empresas constructoras de primer nivel. Nuestros valores: la calidad, los plazos y el trato personalizado.</p>
   </div>
   <div class="stats">
     <div class="stat"><b data-count="2006" data-plain="1">2006</b><span>Año de fundación</span></div>
     <div class="stat"><b data-count="75" data-pre="+">+75</b><span>Proyectos construidos</span></div>
-    <div class="stat"><b data-count="85" data-pre="+" data-suf=" M€">+85 M€</b><span>Capital captado desde 2020</span></div>
+    <div class="stat"><b data-count="150" data-pre="+" data-suf=" M€">+150 M€</b><span>Facturación</span></div>
   </div>
   <span class="impression">Impresión artística</span>
 </section>
@@ -1680,7 +1679,7 @@ function renderListing(){
   };
   const paint=(anim=true)=>{
     const list=data.filter(d=>pass(d,cur,st));
-    grid.classList.toggle('editorial',kind==='promos'); grid.innerHTML=list.length?(kind==='promos'?list.map((p,j)=>listCardHTML(p,PROMOS.indexOf(p)).replace('class="lcard"',`class="lcard ${['w7','w5','w5','w7'][j%4]}${(list.length%2&&j===list.length-1)?' w12':''}"`)).join(''):list.map(workHTML).join('')):'<p class="pc-empty">No hay promociones con estos filtros ahora mismo.</p>';
+    grid.classList.toggle('editorial',kind==='promos'); grid.innerHTML=list.length?(kind==='promos'?list.map((p,j)=>listCardHTML(p,PROMOS.indexOf(p)).replace('class="lcard',`class="lcard ${(list.length%2&&j===list.length-1)?'w12':['w7','w5','w5','w7'][j%4]} `)).join(''):list.map(workHTML).join('')):'<p class="pc-empty">No hay promociones con estos filtros ahora mismo.</p>';
     if(kind==='promos') $$('.lcard',grid).forEach(bindCard);
     $('#listCount').textContent=list.length+(kind==='promos'?(list.length===1?' promoción':' promociones'):(list.length===1?' obra':' obras'));
     if(G&&anim) gsap.from(grid.children,{opacity:0,y:50,duration:1.1,ease:'power3.out',stagger:.07,clearProps:'opacity,transform'});
