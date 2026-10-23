@@ -1192,6 +1192,19 @@ a.work .a-go{margin-top:6px;opacity:.8}
 .br-h p{opacity:.9}
 .plans .fine,.quals .fine{opacity:.9}
 .fine{opacity:.75}
+
+/* Equipo: fichas con retrato */
+.team .people{border-top:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:44px clamp(18px,2.4vw,34px)}
+.team .people li{display:flex;flex-direction:column;gap:0;padding:0 0 18px;border-bottom:1px solid var(--line-ink)}
+.team .people .pf{margin:0 0 18px;aspect-ratio:1;overflow:hidden;background:#e6e4df;position:relative}
+.team .people .pf img{width:100%;height:100%;object-fit:cover;display:block;filter:grayscale(1) contrast(1.02);transition:transform 1.2s var(--ease)}
+.team .people li:hover .pf img{transform:scale(1.04)}
+.team .people .pf-ini{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--serif);font-weight:300;font-size:clamp(2.4rem,4vw,3.6rem);letter-spacing:.04em;color:var(--brand);background:linear-gradient(160deg,#ecebe7,#dcdad4)}
+.team .people .nm{font-size:clamp(1.25rem,1.7vw,1.6rem)}
+.team .people .rl{margin-top:9px}
+.team .people .pr{display:block;margin-top:14px;font-family:var(--serif);font-style:italic;font-size:15px;opacity:.75}
+.team .people p{margin-top:8px;align-self:auto;font-size:13.5px}
+@media (max-width:900px){ .team .people{grid-template-columns:repeat(2,minmax(0,1fr));gap:34px 16px} .team .people .pr{font-size:14px} }
 </style>
 <div class="pt cover" id="pt" aria-hidden="true"><svg viewBox="0 0 205 185" aria-hidden="true"><polygon class="vg" points="11,5 58,5 106,122 80,180"/><polygon class="vw" points="147,5 194,5 126,180 80,180"/></svg></div><script>if('PageRevealEvent' in window){document.getElementById('pt').className='pt vt';}</script>
 <a class="skip" href="#smooth-content">Saltar al contenido</a>
@@ -1349,11 +1362,12 @@ a.work .a-go{margin-top:6px;opacity:.8}
     <p class="lede">Nuestro equipo es nuestro principal activo. Cada director ha llevado obras y empresas antes de llegar a Shevat, y responde de la excelencia, la seguridad, la calidad y los plazos de su área.</p>
   </div>
   <ul class="people">
-    <li><div><span class="nm">Uri Benguigui</span><span class="rl">CEO</span></div><p>Ingeniero civil y MBA por la UPC. Antes, Senior Manager en Dragados.</p></li>
-    <li><div><span class="nm">Álex Martínez</span><span class="rl">CFO</span></div><p>Doctor en Derecho, abogado y economista. Antes, CEO del despacho Martínez Comín.</p></li>
-    <li><div><span class="nm">Moisés Levy</span><span class="rl">Director Madrid</span></div><p>Abogado y economista. Antes, CEO de Capfinit.</p></li>
-    <li><div><span class="nm">Leo Huino</span><span class="rl">Director CAPFINIT</span></div><p>Ingeniero civil. Antes, Senior Manager en El Har (Israel).</p></li>
-    <li><div><span class="nm">Nomar Morros</span><span class="rl">Director Shevat Developments</span></div><p>Arquitecto. Antes, Senior Site Manager en Núñez.</p></li>
+    <li><figure class="pf"><img src="img/equipo/uri.jpg" alt="Uri Benguigui" width="560" height="560" loading="lazy" decoding="async"></figure><div><span class="nm">Uri Benguigui</span><span class="rl">CEO</span></div><span class="pr">Ingeniero civil y MBA por la UPC</span><p>Antes, Senior Manager en Dragados, la mayor constructora de España.</p></li>
+    <li><figure class="pf"><img src="img/equipo/nomar.jpg" alt="Nomar Morros" width="560" height="560" loading="lazy" decoding="async"></figure><div><span class="nm">Nomar Morros</span><span class="rl">COO</span></div><span class="pr">Ingeniero civil</span><p>Antes, Senior Site Manager en la promotora Núñez y Navarro.</p></li>
+    <li><figure class="pf"><img src="img/equipo/ignacio.jpg" alt="Ignacio Gea" width="560" height="560" loading="lazy" decoding="async"></figure><div><span class="nm">Ignacio Gea</span><span class="rl">Site Manager</span></div><span class="pr">Economista</span><p>Site manager en PEMEX, México.</p></li>
+    <li><figure class="pf"><img src="img/equipo/yael.jpg" alt="Yael Benguigui" width="560" height="560" loading="lazy" decoding="async"></figure><div><span class="nm">Yael Benguigui</span><span class="rl">Directora comercial</span></div><span class="pr">Abogada</span><p>Antes, Senior Sales en Engel &amp; Völkers.</p></li>
+    <li><figure class="pf"><img src="img/equipo/loriia.jpg" alt="Loriia Popyvanova" width="560" height="560" loading="lazy" decoding="async"></figure><div><span class="nm">Loriia Popyvanova</span><span class="rl">CFO</span></div><span class="pr">Economista</span><p>CFO en el hedge fund español Merchlinceo.</p></li>
+    <li><figure class="pf"><span class="pf-ini" aria-hidden="true">ML</span></figure><div><span class="nm">Moisés Levy</span><span class="rl">Director Madrid</span></div><span class="pr">Abogado y economista</span><p>Antes, CEO de Capfinit.</p></li>
   </ul>
 </section>
 
