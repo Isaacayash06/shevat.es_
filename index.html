@@ -1311,10 +1311,9 @@ a.work .a-go{margin-top:6px;opacity:.8}
     <div class="g-scene" data-area="2">
       <img class="g-main" src="img/pr-conjunto.jpg" alt="" loading="lazy">
       <div class="g-inset"><img src="img/pr-piscina.jpg" srcset="img/m/pr-piscina.jpg 1000w, img/pr-piscina.jpg 2400w" sizes="100vw" alt="" loading="lazy"></div>
-      <div class="g-fig"><b>1,4 M€</b><span>Ingresos anuales<br>por alquiler</span></div>
       <span class="g-cap">Park Residences III · Conjunto</span>
     </div>
-    <div class="g-idx"><span id="gIdx">02</span><i></i><span>03</span></div>
+    <div class="g-idx"><span id="gIdx">01</span><i></i><span>03</span></div>
     <span class="impression">Impresión artística</span>
   </div>
   <div class="g-text">
@@ -1327,17 +1326,17 @@ a.work .a-go{margin-top:6px;opacity:.8}
     <div class="chapno"><b>02</b><span>El grupo</span></div>
     <h2 class="display h-md"><span class="l">Una sola casa.</span><span class="l"><em>Tres formas de hacerla.</em></span></h2>
     <ol class="areas" id="areas">
-      <li class="area" data-area="0" data-cap="La Factory Homes · Fachada">
-        <button type="button" aria-expanded="false"><span class="an">01</span><span class="aw">Construimos</span></button>
-        <div class="ab"><div class="ab-in"><p>Obra pública con ATEVI y obra privada con CAPFINIT: urbanización, residencial, industrial y logística, e instalaciones públicas.</p><a class="a-go" href="#obra">Ver obra terminada<svg viewBox="0 0 16 16"><path d="M3 8h10m-4-4 4 4-4 4"/></svg></a></div></div>
-      </li>
       <li class="area on" data-area="1" data-cap="Arturo Soria Hills · Dormitorio">
-        <button type="button" aria-expanded="true"><span class="an">02</span><span class="aw">Promovemos</span></button>
+        <button type="button" aria-expanded="true"><span class="an">01</span><span class="aw">Promovemos</span></button>
         <div class="ab"><div class="ab-in"><p>Vivienda propia a través de Shevat Prime I y II, levantada por el mismo equipo que la construye. Más de siete promociones desde 2020.</p><a class="a-go" href="#promociones">Ver promociones<svg viewBox="0 0 16 16"><path d="M3 8h10m-4-4 4 4-4 4"/></svg></a></div></div>
       </li>
       <li class="area" data-area="2" data-cap="Park Residences III · Conjunto">
-        <button type="button" aria-expanded="false"><span class="an">03</span><span class="aw">Gestionamos</span></button>
+        <button type="button" aria-expanded="false"><span class="an">02</span><span class="aw">Gestionamos</span></button>
         <div class="ab"><div class="ab-in"><p>Bezel Invest gestiona nuestros activos en alquiler, y los vehículos Shevat Invest financian los nuevos proyectos.</p><a class="a-go" href="#contacto">Hablar con inversión<svg viewBox="0 0 16 16"><path d="M3 8h10m-4-4 4 4-4 4"/></svg></a></div></div>
+      </li>
+      <li class="area" data-area="0" data-cap="La Factory Homes · Fachada">
+        <button type="button" aria-expanded="false"><span class="an">03</span><span class="aw">Construimos</span></button>
+        <div class="ab"><div class="ab-in"><p>Obra pública con ATEVI y obra privada con CAPFINIT: urbanización, residencial, industrial y logística, e instalaciones públicas.</p></div></div>
       </li>
     </ol>
   </div>
@@ -1886,7 +1885,7 @@ function setArea(i){
   areas.forEach(a=>{ const on=+a.dataset.area===i; a.classList.toggle('on',on); a.querySelector('button').setAttribute('aria-expanded',on); });
   $$('.g-scene').forEach(sc=>sc.classList.toggle('on',+sc.dataset.area===i));
   $$('.g-glow img').forEach(im=>im.classList.toggle('on',+im.dataset.area===i));
-  const gi=$('#gIdx'); if(gi) gi.textContent=pad(i+1);
+  const gi=$('#gIdx'), ar=areas.find(x=>+x.dataset.area===i); if(gi) gi.textContent=ar?ar.querySelector('.an').textContent:pad(i+1);
 }
 areas.forEach(a=>{ const b=a.querySelector('button'); b.addEventListener('click',()=>setArea(+a.dataset.area)); if(HOVER) b.addEventListener('mouseenter',()=>setArea(+a.dataset.area)); });
 
